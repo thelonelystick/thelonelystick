@@ -1,16 +1,71 @@
-## Hi there 👋
+<div align="center">
 
-<!--
-**thelonelystick/thelonelystick** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
+# thelonelystick
 
-Here are some ideas to get you started:
+### At the touch of love.
 
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
--->
+Cybersecurity • Full Stack • AI
+
+</div>
+
+---
+
+## About
+
+Hi, I'm **Bhawishya Kumar Sooryavanshi**.
+
+I'm a Computer Science student specializing in Cybersecurity, passionate about building secure software, exploring offensive security, and continuously learning how systems work under the hood.
+
+I enjoy turning ideas into practical projects while improving my skills in software engineering and security research.
+
+---
+
+## Currently Learning
+
+- Application Security
+- Offensive Security
+- Linux
+- System Design
+- Cloud Computing
+- Artificial Intelligence
+
+---
+
+## Tech Stack
+
+**Languages**
+
+```text
+C++ • Python • JavaScript • TypeScript • SQL
+```
+
+**Frontend**
+
+```text
+React • Next.js • Vite • Tailwind CSS
+```
+
+**Backend**
+
+```text
+Node.js • Express • Firebase • PostgreSQL
+```
+
+**Security & Tools**
+
+```text
+Linux • Git • Docker • Burp Suite • Nmap • Wireshark
+```
+
+---
+
+## Current Goals
+
+- Build impactful open-source projects
+- Strengthen my cybersecurity foundations
+- Contribute to the developer community
+- Learn something new every day
+
+---
+
+> **At the touch of love.**
