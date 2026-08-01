@@ -2,9 +2,7 @@
 
 # thelonelystick
 
-### Turning curiosity into capability.
-
-Cybersecurity • Full Stack • AI
+### Turning curiosity into capability
 
 </div>
 
