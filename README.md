@@ -2,7 +2,7 @@
 
 # thelonelystick
 
-### At the touch of love.
+### Turning curiosity into capability.
 
 Cybersecurity • Full Stack • AI
 
