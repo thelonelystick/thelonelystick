@@ -1,15 +1,3 @@
-<div align="center">
-
-# thelonelystick
-
-### At the touch of love.
-
-Cybersecurity • Full Stack • AI
-
-</div>
-
----
-
 ## About
 
 Hi, I'm **Bhawishya Kumar Sooryavanshi**.
