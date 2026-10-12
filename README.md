@@ -55,13 +55,4 @@ Linux • Git • Docker • Burp Suite • Nmap • Wireshark
 
 ---
 
-## Current Goals
-
-- Build impactful open-source projects
-- Strengthen my cybersecurity foundations
-- Contribute to the developer community
-- Learn something new every day
-
----
-
 > **At the touch of love.**
