@@ -2,7 +2,7 @@
 
 # thelonelystick
 
-### Turning curiosity into capability
+### Overview -> https://thelonelystick.vercel.app
 
 </div>
 
@@ -55,4 +55,4 @@ Linux • Git • Docker • Burp Suite • Nmap • Wireshark
 
 ---
 
-> **At the touch of love.**
+> **Turning Curiosity Into Capability.**
