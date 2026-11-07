@@ -8,11 +8,36 @@
   const ADMIN_REDIRECT_URL = "https://thelonelystick.vercel.app/admin";
   const BUCKET = "portfolio-media";
   const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+  const slugify = value => String(value || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const DOMAIN_SEEDS = [
+    ["tech", "Tech", "Software, development, digital products, and technical experiments.", "code", 20, 22, 65],
+    ["art", "Art", "Visual art, illustrations, design, and creative experiments.", "palette", 76, 20, 72],
+    ["poet", "Poet", "Poetry, reflections, words, and original writing.", "feather", 49, 43, 58],
+    ["music", "Music", "Music, sound, compositions, and audio experiments.", "music", 15, 67, 70],
+    ["vlog", "Vlog", "Personal videos, adventures, experiences, and everyday stories.", "video", 83, 66, 75],
+    ["edu", "Edu", "Educational content, explanations, tutorials, and learning resources.", "book-open", 35, 81, 62],
+    ["sport", "Sport", "Sports, fitness, training, activities, and personal progress.", "trophy", 67, 84, 68],
+    ["cyber", "Cyber", "Cybersecurity, ethical hacking, digital safety, and security research.", "shield-check", 51, 59, 64]
+  ];
+  const makeDefaultWeb = () => ({
+    enabled: true,
+    sectionTitle: "Welcome to my web",
+    sectionSubtitle: "Eight worlds. One mind. Explore what I create.",
+    defaultExpanded: false,
+    domains: DOMAIN_SEEDS.map(([id, title, description, icon, x, y, threadLength], index) => ({
+      id, slug: id, title, description, icon, published: true, displayOrder: index + 1,
+      themePresetId: id, position: {x, y}, threadLength, pagePath: `/domains/${id}`,
+      featuredProjectIds: [], socialLinkIds: [], connections: [], createdAt: null, updatedAt: null
+    })),
+    connections: [],
+    themePresets: []
+  });
   let content = {
     siteCopy: {},
     heroImage: "",
     profilePhotos: [],
     contact: {email: "", message: "", whatsapp: ""},
+    web: makeDefaultWeb(),
     links: [],
     projects: []
   };
@@ -42,6 +67,7 @@
     overview: ["Overview", "Good to see you."],
     homepage: ["Homepage content", "Shape your introduction."],
     projects: ["Projects & domains", "Keep your work up to date."],
+    "web-domains": ["Web Domains", "Shape your organic web."],
     media: ["Media library", "Manage your profile photos."],
     contact: ["Contact details", "Make it easy to reach you."],
     appearance: ["Appearance", "Set the mood."],
@@ -68,7 +94,7 @@
         .select("content").eq("id", "published").maybeSingle();
       if (error) {
         const setupError = ["PGRST205", "42P01"].includes(error.code)
-          ? "Portfolio database table is missing. Run both SQL migrations in supabase/migrations, then reload this page."
+          ? "Portfolio database table is missing. Run all SQL migrations in supabase/migrations, then reload this page."
           : error.code === "42501"
             ? "Supabase denied access to portfolio content. Check the migration's read/write policies and your admin account."
             : `Could not load published content: ${error.message}`;
@@ -88,8 +114,13 @@
         heroImage: typeof saved.heroImage === "string" ? saved.heroImage : "",
         contact: saved.contact && typeof saved.contact === "object" ? saved.contact : {email: "", message: "", whatsapp: ""},
         profilePhotos: Array.isArray(saved.profilePhotos) ? saved.profilePhotos.slice(0, 6) : [],
-        links: Array.isArray(saved.links) ? saved.links : [],
-        projects: Array.isArray(saved.projects) ? saved.projects : []
+        links: (Array.isArray(saved.links) ? saved.links : []).map((link, index) => ({
+          ...link, id: link.id || `social-${slugify(link.label) || index + 1}`
+        })),
+        projects: (Array.isArray(saved.projects) ? saved.projects : []).map((project, index) => ({
+          ...project, id: project.id || `project-${slugify(project.title) || index + 1}`
+        })),
+        web: saved.web && typeof saved.web === "object" ? saved.web : makeDefaultWeb()
       };
       links = content.links;
       contentLoaded = true;
@@ -98,6 +129,7 @@
       renderContact();
       renderLinks();
       renderProfilePhotos();
+      renderDomains();
       $("#owner-email").textContent = ADMIN_EMAIL;
       setStatus("#content-backend-status", "Connected · Published content");
       return content;
@@ -189,6 +221,7 @@
 
   function projectDrafts() {
     return $$(".project-edit").map(row => ({
+      id: row.dataset.projectId || "",
       title: $("[data-title]", row).value.trim(),
       description: $("[data-description]", row).value.trim(),
       meta: $("[data-meta]", row).value.trim(),
@@ -203,7 +236,7 @@
   function renderProjects() {
     $("#project-editor-list").innerHTML = content.projects.map((project, index) => {
       const tags = Array.isArray(project.tags) ? project.tags.join(", ") : "";
-      return `<article class="project-edit" data-image-path="${esc(project.imagePath || "")}">
+      return `<article class="project-edit" data-project-id="${esc(project.id || "")}" data-image-path="${esc(project.imagePath || "")}">
         <div class="project-edit-head"><span>Project ${String(index + 1).padStart(2, "0")}</span><div class="card-order">
           <button type="button" class="order-card" data-move="-1" aria-label="Move ${esc(project.title)} up" ${index === 0 ? "disabled" : ""}>↑</button>
           <button type="button" class="order-card" data-move="1" aria-label="Move ${esc(project.title)} down" ${index === content.projects.length - 1 ? "disabled" : ""}>↓</button>
@@ -235,7 +268,16 @@
     }
     const previous = content.projects;
     const previousPaths = previous.map(project => project.imagePath).filter(Boolean);
+    const previousWeb = content.web;
+    const validIds = new Set(projects.map(projectReferenceId));
     content.projects = projects;
+    content.web = {
+      ...content.web,
+      domains: content.web.domains.map(domain => ({
+        ...domain,
+        featuredProjectIds: (domain.featuredProjectIds || []).filter(id => validIds.has(id))
+      }))
+    };
     try {
       await publishContent();
       renderProjects();
@@ -253,13 +295,14 @@
       toast("Projects published");
     } catch (error) {
       content.projects = previous;
+      content.web = previousWeb;
       setStatus("#projects-status", error.message, true);
     }
   }
   $("#save-projects").addEventListener("click", () => saveProjects(projectDrafts()));
   $("#add-project").addEventListener("click", () => {
     const projects = projectDrafts();
-    projects.push({title: "New project", description: "Add a short project summary.", meta: "PROJECT", tags: [], url: "", image: "", imagePath: "", kind: "custom", visible: true});
+    projects.push({id: `project-${crypto.randomUUID()}`, title: "New project", description: "Add a short project summary.", meta: "PROJECT", tags: [], url: "", image: "", imagePath: "", kind: "custom", visible: true});
     renderProjectsWith(projects);
   });
   function renderProjectsWith(projects) {
@@ -305,6 +348,264 @@
       setStatus("#projects-status", error.message, true);
     }
     input.value = "";
+  });
+
+  const projectReferenceId = (project, index) => project.id || `project-${slugify(project.title) || index + 1}`;
+  const socialReferenceId = (link, index) => link.id || `social-${slugify(link.label) || index + 1}`;
+  const selectedValues = select => [...select.selectedOptions].map(option => option.value);
+  function renderDomains(domains = content.web.domains || []) {
+    $("#web-enabled").checked = content.web.enabled !== false;
+    $("#web-section-title").value = content.web.sectionTitle || "";
+    $("#web-section-subtitle").value = content.web.sectionSubtitle || "";
+    $("#domain-editor-list").innerHTML = domains.map((domain, index) => {
+      const position = domain.position || {x: 50, y: 50};
+      const connections = Array.isArray(domain.connections) ? domain.connections : [];
+      const featuredProjectIds = Array.isArray(domain.featuredProjectIds) ? domain.featuredProjectIds : [];
+      const socialLinkIds = Array.isArray(domain.socialLinkIds) ? domain.socialLinkIds : [];
+      const projectOptions = content.projects.map((project, projectIndex) => {
+        const id = projectReferenceId(project, projectIndex);
+        return `<option value="${esc(id)}" ${featuredProjectIds.includes(id) ? "selected" : ""}>${esc(project.title)}</option>`;
+      }).join("");
+      const socialOptions = content.links.map((link, linkIndex) => {
+        const id = socialReferenceId(link, linkIndex);
+        return `<option value="${esc(id)}" ${socialLinkIds.includes(id) ? "selected" : ""}>${esc(link.label)}</option>`;
+      }).join("");
+      const connectionOptions = domains.filter(item => item.id !== domain.id)
+        .map(item => `<option value="${esc(item.id)}" ${connections.includes(item.id) ? "selected" : ""}>${esc(item.title)}</option>`).join("");
+      const themeOptions = ["tech", "art", "poet", "music", "vlog", "edu", "sport", "cyber"].map(theme =>
+        `<option value="${theme}" ${domain.themePresetId === theme ? "selected" : ""}>${theme}</option>`).join("");
+      return `<article class="domain-edit" data-domain-id="${esc(domain.id)}">
+        <header class="domain-edit-head"><div><span class="eyebrow">DOMAIN ${String(index + 1).padStart(2, "0")} / ${esc(domain.id)}</span><strong>${esc(domain.title || "Untitled domain")}</strong></div><div class="card-order">
+          <button type="button" class="order-card" data-domain-move="-1" aria-label="Move ${esc(domain.title)} up" ${index === 0 ? "disabled" : ""}>↑</button>
+          <button type="button" class="order-card" data-domain-move="1" aria-label="Move ${esc(domain.title)} down" ${index === domains.length - 1 ? "disabled" : ""}>↓</button>
+          <button type="button" class="button secondary" data-domain-duplicate>Duplicate</button>
+          <button type="button" class="remove-card" data-domain-remove>Remove</button>
+        </div></header>
+        <div class="domain-fields">
+          <label>Stable ID<input data-domain-id-value value="${esc(domain.id)}" required></label>
+          <label>URL slug<input data-domain-slug value="${esc(domain.slug)}" required></label>
+          <label>Title<input data-domain-title value="${esc(domain.title)}" maxlength="50" required></label>
+          <label>Icon<input data-domain-icon value="${esc(domain.icon || "code")}" maxlength="30" required></label>
+          <label class="domain-field-wide">Description<textarea data-domain-description rows="2" maxlength="240" required>${esc(domain.description)}</textarea></label>
+          <label class="domain-field-wide">Domain page content<textarea data-domain-page-content rows="4" maxlength="3000" placeholder="Optional additional text for this domain page.">${esc(domain.pageContent || "")}</textarea></label>
+          <label class="domain-field-wide">Dedicated page path<input data-domain-path value="${esc(domain.pagePath || `/domains/${domain.slug}`)}" required></label>
+          <label>External URL<input data-domain-url type="url" value="${esc(domain.url || "")}" placeholder="https://example.com"></label>
+          <label>Visual theme<select data-domain-theme>${themeOptions}</select></label>
+          <label>Display order<input data-domain-order type="number" min="1" step="1" value="${Number(domain.displayOrder) || index + 1}" required></label>
+          <label>Position X (0-100)<input data-domain-x type="number" min="0" max="100" step="1" value="${Number(position.x)}" required></label>
+          <label>Position Y (0-100)<input data-domain-y type="number" min="0" max="100" step="1" value="${Number(position.y)}" required></label>
+          <label>Thread length (20-180)<input data-domain-thread type="number" min="20" max="180" step="1" value="${Number(domain.threadLength) || 65}" required></label>
+          <label class="visibility-control"><input data-domain-published type="checkbox" ${domain.published === false ? "" : "checked"}> Published</label>
+          <label class="visibility-control"><input data-domain-hidden type="checkbox" ${domain.hidden === true ? "checked" : ""}> Hide from public web</label>
+          <label>Featured projects<select data-domain-projects multiple size="4">${projectOptions}</select></label>
+          <label>Social links<select data-domain-social multiple size="4">${socialOptions}</select></label>
+          <label class="domain-field-wide">Connect strands to<select data-domain-connections multiple size="4">${connectionOptions}</select><small>Choose other domains to draw silk connections between them.</small></label>
+        </div>
+        <div class="domain-previews"><span>Preview this domain</span><div><article data-preview-theme="dark"><b>Solar</b><strong>${esc(domain.title)}</strong><small>${esc(domain.description)}</small></article><article data-preview-theme="light"><b>Lunar</b><strong>${esc(domain.title)}</strong><small>${esc(domain.description)}</small></article></div></div>
+      </article>`;
+    }).join("");
+  }
+  function readDomainDrafts() {
+    return $$(".domain-edit").map(row => {
+      const choose = selector => selectedValues($(selector, row));
+      return {
+        ...content.web.domains.find(domain => domain.id === row.dataset.domainId),
+        id: $("[data-domain-id-value]", row).value.trim(),
+        slug: $("[data-domain-slug]", row).value.trim().toLowerCase(),
+        title: $("[data-domain-title]", row).value.trim(),
+        description: $("[data-domain-description]", row).value.trim(),
+        pageContent: $("[data-domain-page-content]", row).value.trim(),
+        icon: $("[data-domain-icon]", row).value.trim(),
+        pagePath: $("[data-domain-path]", row).value.trim(),
+        url: $("[data-domain-url]", row).value.trim(),
+        themePresetId: $("[data-domain-theme]", row).value,
+        displayOrder: Number($("[data-domain-order]", row).value),
+        position: {x: Number($("[data-domain-x]", row).value), y: Number($("[data-domain-y]", row).value)},
+        threadLength: Number($("[data-domain-thread]", row).value),
+        published: $("[data-domain-published]", row).checked,
+        hidden: $("[data-domain-hidden]", row).checked,
+        featuredProjectIds: choose("[data-domain-projects]"),
+        socialLinkIds: choose("[data-domain-social]"),
+        connections: choose("[data-domain-connections]")
+      };
+    });
+  }
+  function validateDomainDrafts(domains) {
+    if (!domains.length) throw new Error("Keep at least one domain, or disable the organic web before publishing.");
+    const ids = domains.map(domain => domain.id);
+    const slugs = domains.map(domain => domain.slug);
+    if (new Set(ids).size !== ids.length) throw new Error("Domain IDs must be unique.");
+    if (new Set(slugs).size !== slugs.length) throw new Error("Domain slugs must be unique.");
+    const projectIds = new Set(content.projects.map(projectReferenceId));
+    const socialIds = new Set(content.links.map(socialReferenceId));
+    const domainIds = new Set(ids);
+    for (const domain of domains) {
+      if (!/^[a-z0-9][a-z0-9-]{0,59}$/.test(domain.id)) throw new Error(`Invalid stable ID: ${domain.id}`);
+      if (!/^[a-z0-9][a-z0-9-]{0,59}$/.test(domain.slug)) throw new Error(`Invalid URL slug: ${domain.slug}`);
+      if (!domain.title || !domain.description || !domain.icon || !domain.themePresetId) {
+        throw new Error(`Domain ${domain.slug} needs a title, description, icon, and visual theme.`);
+      }
+      if (!Number.isInteger(domain.displayOrder) || domain.displayOrder < 1) throw new Error(`Invalid display order for ${domain.title}.`);
+      if (!Number.isFinite(domain.position.x) || domain.position.x < 0 || domain.position.x > 100 ||
+          !Number.isFinite(domain.position.y) || domain.position.y < 0 || domain.position.y > 100) {
+        throw new Error(`Position for ${domain.title} must be between 0 and 100.`);
+      }
+      if (!Number.isFinite(domain.threadLength) || domain.threadLength < 20 || domain.threadLength > 180) {
+        throw new Error(`Thread length for ${domain.title} must be between 20 and 180.`);
+      }
+      if (domain.pagePath !== `/domains/${domain.slug}`) throw new Error(`Page path for ${domain.title} must be /domains/${domain.slug}.`);
+      if (domain.url && !isWebUrl(domain.url)) throw new Error(`External URL for ${domain.title} must use http(s).`);
+      if (domain.featuredProjectIds.some(id => !projectIds.has(id))) throw new Error(`A featured project reference in ${domain.title} is invalid.`);
+      if (domain.socialLinkIds.some(id => !socialIds.has(id))) throw new Error(`A social link reference in ${domain.title} is invalid.`);
+      if (domain.connections.some(id => !domainIds.has(id) || id === domain.id)) throw new Error(`A strand connection in ${domain.title} references an invalid domain.`);
+    }
+  }
+  async function publishDomainDrafts(domains, message = "Domain configuration published.") {
+    const previous = content.web;
+    try {
+      validateDomainDrafts(domains);
+      if (!$("#web-section-title").value.trim()) throw new Error("The organic web needs a section title.");
+      const now = new Date().toISOString();
+      const savedDomains = domains.map((domain, index) => ({
+        ...domain,
+        displayOrder: index + 1,
+        pagePath: `/domains/${domain.slug}`,
+        createdAt: domain.createdAt || now,
+        updatedAt: now
+      }));
+      const connections = [];
+      const seen = new Set();
+      savedDomains.forEach(domain => domain.connections.forEach(otherId => {
+        const [from, to] = [domain.id, otherId].sort();
+        const key = `${from}:${to}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          connections.push({from, to});
+        }
+      }));
+      content.web = {
+        ...previous,
+        enabled: $("#web-enabled").checked,
+        sectionTitle: $("#web-section-title").value.trim(),
+        sectionSubtitle: $("#web-section-subtitle").value.trim(),
+        domains: savedDomains,
+        connections
+      };
+      await publishContent();
+      renderDomains();
+      setStatus("#domain-publish-status", message);
+      toast("Web domains published");
+    } catch (error) {
+      content.web = previous;
+      renderDomains(domains);
+      setStatus("#domain-publish-status", error.message, true);
+    }
+  }
+  $("#domain-settings-form").addEventListener("submit", event => {
+    event.preventDefault();
+    void publishDomainDrafts(readDomainDrafts(), "Web settings and domain changes published.");
+  });
+  $("#publish-domains").addEventListener("click", () => {
+    void publishDomainDrafts(readDomainDrafts());
+  });
+  $("#domain-add-form").addEventListener("submit", event => {
+    event.preventDefault();
+    const domains = readDomainDrafts();
+    const title = $("#new-domain-title").value.trim();
+    const baseSlug = slugify(title);
+    if (!baseSlug) {
+      setStatus("#domain-publish-status", "Enter a title that can form a URL slug.", true);
+      return;
+    }
+    let slug = baseSlug;
+    let suffix = 2;
+    while (domains.some(domain => domain.slug === slug)) slug = `${baseSlug}-${suffix++}`;
+    domains.push({
+      id: `domain-${crypto.randomUUID()}`, slug, title, description: $("#new-domain-description").value.trim(),
+      icon: $("#new-domain-icon").value.trim() || "code", published: true, hidden: false,
+      displayOrder: domains.length + 1, themePresetId: "tech",
+      position: {x: 50, y: 50}, threadLength: 65, pagePath: `/domains/${slug}`,
+      featuredProjectIds: [], socialLinkIds: [], connections: [], createdAt: null, updatedAt: null
+    });
+    renderDomains(domains);
+    $("#new-domain-title").value = "";
+    $("#new-domain-description").value = "";
+    setStatus("#domain-publish-status", "Domain draft added. Review and publish to save it.");
+  });
+  $("#domain-editor-list").addEventListener("click", event => {
+    const row = event.target.closest(".domain-edit");
+    if (!row) return;
+    const domains = readDomainDrafts();
+    const index = [...row.parentElement.children].indexOf(row);
+    if (event.target.closest("[data-domain-move]")) {
+      const next = index + Number(event.target.closest("[data-domain-move]").dataset.domainMove);
+      if (next < 0 || next >= domains.length) return;
+      [domains[index], domains[next]] = [domains[next], domains[index]];
+      renderDomains(domains);
+      setStatus("#domain-publish-status", "Order changed in draft. Publish to apply it.");
+      return;
+    }
+    if (event.target.closest("[data-domain-duplicate]")) {
+      const original = domains[index];
+      let slug = `${original.slug}-copy`;
+      let suffix = 2;
+      while (domains.some(domain => domain.slug === slug)) slug = `${original.slug}-copy-${suffix++}`;
+      domains.splice(index + 1, 0, {
+        ...original, id: `domain-${crypto.randomUUID()}`, slug, title: `${original.title} copy`,
+        pagePath: `/domains/${slug}`, position: {...original.position}, connections: [],
+        createdAt: null, updatedAt: null
+      });
+      renderDomains(domains);
+      setStatus("#domain-publish-status", "Duplicate draft created. Publish to save it.");
+      return;
+    }
+    if (event.target.closest("[data-domain-remove]")) {
+      const target = domains[index];
+      const referencedProjects = (target.featuredProjectIds || []).length;
+      const referencedLinks = (target.socialLinkIds || []).length;
+      const strandPairs = new Set((content.web.connections || [])
+        .filter(edge => edge.from === target.id || edge.to === target.id)
+        .map(edge => [edge.from, edge.to].sort().join(":")));
+      domains.forEach(domain => {
+        if (domain.id !== target.id && (domain.connections || []).includes(target.id)) {
+          strandPairs.add([domain.id, target.id].sort().join(":"));
+        }
+      });
+      const details = `Remove ${target.title} permanently?\n\nIts ${target.pagePath} page and custom page content will be removed. ${referencedProjects} featured-project references and ${referencedLinks} social-link references will be detached, but those projects and links will not be deleted. ${strandPairs.size} strand connections will be removed. Shared projects, links, media, and all other page content will be preserved.`;
+      if (!window.confirm(details)) return;
+      const updatedDomains = domains.filter(domain => domain.id !== target.id).map(domain => ({
+        ...domain, connections: domain.connections.filter(id => id !== target.id)
+      }));
+      renderDomains(updatedDomains);
+      void publishDomainDrafts(updatedDomains, `${target.title} removed and configuration published.`);
+    }
+  });
+  $("#domain-editor-list").addEventListener("change", event => {
+    const row = event.target.closest(".domain-edit");
+    if (!row || !event.target.matches("[data-domain-title],[data-domain-description]")) return;
+    const title = $("[data-domain-title]", row).value;
+    const description = $("[data-domain-description]", row).value;
+    $$("[data-preview-theme]", row).forEach(preview => {
+      $("strong", preview).textContent = title;
+      $("small", preview).textContent = description;
+    });
+  });
+  $("#domain-editor-list").addEventListener("input", event => {
+    const row = event.target.closest(".domain-edit");
+    if (row && event.target.matches("[data-domain-slug]")) {
+      const slug = event.target.value.trim().toLowerCase();
+      $("[data-domain-path]", row).value = `/domains/${slug}`;
+    }
+  });
+  $("#restore-domain-defaults").addEventListener("click", () => {
+    const currentCount = content.web.domains?.length || 0;
+    if (!window.confirm(`Restore the initial eight-domain configuration? This replaces ${currentCount} current domain records and removes their connections and assignments. Projects, social links, media, and all other published content will be preserved.`)) return;
+    const defaults = makeDefaultWeb();
+    $("#web-enabled").checked = defaults.enabled;
+    $("#web-section-title").value = defaults.sectionTitle;
+    $("#web-section-subtitle").value = defaults.sectionSubtitle;
+    renderDomains(defaults.domains);
+    void publishDomainDrafts(defaults.domains, "Initial eight domains restored and published.");
   });
 
   function renderProfilePhotos() {
@@ -457,6 +758,7 @@
   $("#links-form").addEventListener("submit", async event => {
     event.preventDefault();
     const next = $$(".link-row").map((row, index) => ({
+      id: links[index]?.id || `social-${crypto.randomUUID()}`,
       label: $(`[data-label="${index}"]`).value.trim(),
       url: $(`[data-url="${index}"]`).value.trim(),
       type: $(`[data-type="${index}"]`).value
@@ -466,14 +768,24 @@
       return;
     }
     const previous = links;
+    const previousWeb = content.web;
     links = next;
     content.links = links;
+    const validIds = new Set(links.map(socialReferenceId));
+    content.web = {
+      ...content.web,
+      domains: content.web.domains.map(domain => ({
+        ...domain,
+        socialLinkIds: (domain.socialLinkIds || []).filter(id => validIds.has(id))
+      }))
+    };
     try {
       await publishContent();
       setStatus("#links-status", "Social links published.");
     } catch (error) {
       links = previous;
       content.links = previous;
+      content.web = previousWeb;
       renderLinks();
       setStatus("#links-status", error.message, true);
     }

@@ -1,18 +1,29 @@
 BHAWISHYA KUMAR SOORYAVANSHI — PERSONAL PORTFOLIO
 
-Files:
-- index.html: website content and page structure
-- style.css: black-and-gold responsive visual design
-- script.js: mobile navigation and current year
+The public portfolio is built with index.html, style.css, and script.js.
+The authenticated admin dashboard is admin.html, admin.css, and admin.js.
+Portfolio content and media are stored in Supabase; edits are published from
+the admin dashboard and are not saved to browser storage.
 
-Run locally:
-1. Extract this ZIP.
-2. Open the folder in VS Code.
-3. Open index.html in a browser, or use the Live Server extension.
+SUPABASE SETUP
 
-Before publishing:
-- In index.html, replace YOUR_EMAIL_HERE in the mailto link with your real email address.
-- Add GitHub and LinkedIn links when you have them.
-- Review the project descriptions and skill list so they accurately reflect your current progress.
+In the Supabase SQL Editor, run these migrations in order:
+1. supabase/migrations/20261108010000_portfolio_content_and_media.sql
+2. supabase/migrations/20261108022000_portfolio_site_copy.sql
+3. supabase/migrations/20261108032000_whatsapp_contact.sql
+4. supabase/migrations/20261108040900_organic_web_domains.sql
 
-The portfolio uses Google Fonts from the web; an internet connection is required for those fonts. No build step or package installation is required.
+The fourth migration adds the initial eight organic-web domains only when a
+web configuration does not already exist. It preserves all other published
+content. Re-running the migrations does not overwrite later database edits.
+Image uploads are limited to 8 MB per JPEG, PNG, WebP, or GIF.
+
+DEPLOYMENT
+
+Deploy the site, including vercel.json, so /domains/<slug> resolves to the
+database-rendered domain page. Configure Google OAuth and the Supabase redirect
+URL for the deployed admin page. Publishing and media changes are restricted
+by the existing Supabase policies to the authorized owner account.
+
+No build step or package installation is required. Google Fonts require an
+internet connection.

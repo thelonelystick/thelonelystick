@@ -61,6 +61,7 @@
 
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>if (/^\/domains\//.test(location.pathname)) { const base = document.createElement("base"); base.href = "/"; document.head.append(base); }</script>
   <meta name="theme-color" content="#090909">
   <link rel="icon" type="image/gif" href="logo.gif">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -98,31 +99,6 @@
     </svg>
     <span class="cloud cloud-one"></span><span class="cloud cloud-two"></span><span class="cloud cloud-three"></span>
   </div>
-  <section class="welcome-entry" id="welcome-entry" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
-    <div class="entry-panel entry-panel-left"><span class="entry-kicker">A PERSONAL PORTFOLIO</span><span class="entry-words" aria-hidden="true">Welcome to my</span></div>
-    <div class="entry-panel entry-panel-right"><span class="entry-kicker" data-copy="entryOwner"></span><span class="entry-words" aria-hidden="true">web</span></div>
-    <span class="visually-hidden" id="welcome-title">Welcome to my web</span>
-    <button class="entry-enter" id="entry-enter" type="button">Enter <span aria-hidden="true">↗</span></button>
-    <button class="entry-skip" id="entry-skip" type="button">Skip intro</button>
-    <div class="web-reveal" id="web-reveal" aria-hidden="true">
-      <svg class="web-lines" viewBox="0 0 1000 680" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M500 340 C420 260 290 150 82 92"/><path d="M500 340 C390 270 250 260 82 310"/>
-        <path d="M500 340 C390 390 260 455 82 588"/><path d="M500 340 C610 255 740 150 918 92"/>
-        <path d="M500 340 C640 290 770 305 918 310"/><path d="M500 340 C610 405 745 495 918 588"/>
-        <path d="M170 125 C360 210 640 205 835 125"/><path d="M120 310 C340 250 665 260 880 310"/>
-        <path d="M170 555 C355 465 650 475 835 555"/><path d="M245 190 C420 310 580 390 755 492"/>
-        <path d="M755 190 C580 315 420 385 245 492"/>
-      </svg>
-      <div class="web-hub" aria-hidden="true" data-copy="brandLong"></div>
-      <nav class="web-nav" aria-label="Portfolio navigation">
-        <a class="web-node" href="#home"><span>01</span>Home</a><a class="web-node" href="#about"><span>02</span>About</a>
-        <a class="web-node" href="#projects"><span>03</span>Projects</a><a class="web-node" href="#learning"><span>04</span>Learning</a>
-        <a class="web-node" href="#contact"><span>05</span>Contact</a>
-      </nav>
-      <div class="web-domain-cards" id="web-domain-cards" aria-label="Featured project domains"></div>
-      <button class="web-continue" id="web-continue" type="button">Continue to portfolio <span aria-hidden="true">↓</span></button>
-    </div>
-  </section>
   <header class="header">
     <a class="brand" href="#home" aria-label="Portfolio home"><img class="brand-logo" src="logo.gif" alt=""><span><span data-copy="brandShort"></span><span class="gold">.</span></span></a>
     <button class="menu-toggle" aria-label="Toggle navigation" aria-expanded="false"><span></span><span></span></button>
@@ -165,6 +141,16 @@
       </div>
     </section>
 
+    <section class="organic-web wrap section" id="web" hidden>
+      <div class="section-heading"><div><div class="kicker">MY CREATIVE DOMAINS</div><h2 id="web-title">Welcome to my web</h2></div><p id="web-subtitle"></p></div>
+      <div class="organic-web-canvas" id="organic-web-canvas" aria-label="Organic web of published domains">
+        <svg class="organic-web-threads" id="organic-web-threads" aria-hidden="true" focusable="false" preserveAspectRatio="none" viewBox="0 0 1000 700"></svg>
+        <div class="organic-web-hub" aria-hidden="true"></div>
+        <div class="organic-web-domains" id="organic-web-domains"></div>
+      </div>
+      <nav class="domain-accessible-list" aria-label="All published web domains"><h3>Explore all domains</h3><ol id="domain-accessible-list"></ol></nav>
+    </section>
+
     <section class="projects wrap section" id="projects">
       <div class="section-heading"><div><div class="kicker" data-copy="projectsKicker"></div><h2 data-copy="projectsTitle"></h2></div><p data-copy="projectsDescription"></p></div>
       <div class="project-grid" id="project-grid" aria-label="Project previews">
@@ -188,6 +174,11 @@
     <footer class="footer wrap"><a class="brand" href="#home"><img class="brand-logo" src="logo.gif" alt=""><span><span data-copy="brandLong"></span><span class="gold">.</span></span></a><span class="footer-note" data-copy="footerNote"></span><a class="back-top" href="#home" data-copy="backToTop"></a><div class="footer-bottom"><span>© <span id="year"></span> <span data-copy="footerOwner"></span></span><span><span data-copy="footerMadeWith"></span> <b class="gold">✳</b></span><a class="admin-link" href="admin.html">Admin</a></div></footer>
   </div>
   </main>
+
+  <section class="domain-page wrap" id="domain-page" hidden>
+    <a class="domain-back-link" href="/#web">← All domains</a>
+    <article id="domain-page-content"></article>
+  </section>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="script.js"></script>
 </body>

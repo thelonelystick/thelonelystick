@@ -5,6 +5,15 @@
   const SUPABASE_URL = "https://lltnosossejymzvddeee.supabase.co";
   const SUPABASE_PUBLISHABLE_KEY = "sb_publishable__mdO3XEbIwSJDnGXyqSlFg_g7TxWpSF";
   const CONTENT_TABLE = "portfolio_content";
+  const domainRoute = window.location.pathname.match(/^\/domains\/([a-z0-9][a-z0-9-]*)\/?$/i);
+  if (domainRoute) {
+    document.documentElement.classList.add("is-domain-route");
+    const domainPage = $("#domain-page");
+    if (domainPage) {
+      domainPage.hidden = false;
+      $("#domain-page-content").textContent = "Loading domain…";
+    }
+  }
 
   const escapeHTML = value => String(value ?? "").replace(/[&<>"']/g, character =>
     ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[character]));
@@ -153,13 +162,6 @@
       art.classList.remove("has-screenshot");
       art.insertAdjacentHTML("beforeend", `${defaultArt(kind)}<div class="art-word">${escapeHTML($("h3", card).textContent)}<span>✳</span></div>`);
     }, {once: true}));
-    $("#web-domain-cards").innerHTML = visible.slice(0, 4).map(project => {
-      const destination = safeLink(project.url || "");
-      const label = `<span class="domain-index">DOMAIN / ${escapeHTML((project.meta || "PROJECT").split(" · ")[0])}</span><strong>${escapeHTML(project.title)}</strong>`;
-      return destination
-        ? `<a class="web-domain-card" href="${escapeHTML(destination)}" target="_blank" rel="noopener noreferrer">${label}<span aria-hidden="true">↗</span></a>`
-        : `<div class="web-domain-card">${label}</div>`;
-    }).join("");
     $$(".project-card").forEach(card => {
       card.addEventListener("pointerenter", () => {
         $$(".project-card.is-raised").forEach(active => active.classList.remove("is-raised"));
@@ -170,6 +172,89 @@
         card.classList.add("is-raised");
       });
     });
+  }
+
+  const slugify = value => String(value || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const domainIcon = icon => ({
+    code: "&lt;/&gt;", palette: "◒", feather: "✎", music: "♫",
+    video: "▷", "book-open": "▤", trophy: "♜", "shield-check": "⬡"
+  }[icon] || "✳");
+  function renderDomainPage(web, projects, links) {
+    if (!domainRoute) return;
+    const slug = domainRoute[1].toLowerCase();
+    const domain = (Array.isArray(web?.domains) ? web.domains : []).find(item => item.slug === slug && item.published !== false);
+    const page = $("#domain-page-content");
+    if (!domain) {
+      page.innerHTML = `<h1>Domain not found</h1><p>This domain is unpublished or no longer available.</p>`;
+      return;
+    }
+    document.title = `${domain.title} | thelonelystick`;
+    const projectIds = new Set(Array.isArray(domain.featuredProjectIds) ? domain.featuredProjectIds : []);
+    const socialIds = new Set(Array.isArray(domain.socialLinkIds) ? domain.socialLinkIds : []);
+    const featuredProjects = projects.filter((project, index) =>
+      projectIds.has(project.id || `project-${slugify(project.title) || index + 1}`) && project.visible !== false);
+    const socialLinks = links.filter((link, index) =>
+      socialIds.has(link.id || `social-${slugify(link.label) || index + 1}`));
+    const externalUrl = safeLink(domain.url || "");
+    const descriptionMeta = $('meta[name="description"]');
+    if (descriptionMeta) descriptionMeta.content = domain.description;
+    page.innerHTML = `<span class="kicker">${escapeHTML(domain.themePresetId || domain.icon || "DOMAIN")}</span><h1>${escapeHTML(domain.title)}</h1><p>${escapeHTML(domain.description)}</p>${domain.pageContent ? `<div class="domain-page-copy">${escapeHTML(domain.pageContent)}</div>` : ""}${externalUrl ? `<a class="btn btn-gold" href="${escapeHTML(externalUrl)}" target="_blank" rel="noopener noreferrer">Visit ${escapeHTML(domain.title)} ↗</a>` : ""}${featuredProjects.length ? `<section><h2>Featured projects</h2><ul>${featuredProjects.map(project => `<li><a href="${escapeHTML(safeLink(project.url || "") || "#projects")}">${escapeHTML(project.title)}</a> — ${escapeHTML(project.description)}</li>`).join("")}</ul></section>` : ""}${socialLinks.length ? `<section><h2>Related links</h2><ul>${socialLinks.map(link => `<li><a href="${escapeHTML(safeLink(link.url || ""))}" target="_blank" rel="noopener noreferrer">${escapeHTML(link.label)}</a></li>`).join("")}</ul></section>` : ""}`;
+  }
+
+  function renderOrganicWeb(web, projects, links) {
+    const section = $("#web");
+    const domains = Array.isArray(web?.domains)
+      ? web.domains.filter(domain => domain && domain.published !== false && domain.hidden !== true)
+        .sort((a, b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0))
+      : [];
+    section.hidden = web?.enabled === false || domains.length === 0;
+    $("#web-title").textContent = web?.sectionTitle || "Welcome to my web";
+    $("#web-subtitle").textContent = web?.sectionSubtitle || "";
+    const canvas = $("#organic-web-canvas");
+    const cards = $("#organic-web-domains");
+    const list = $("#domain-accessible-list");
+    if (section.hidden) {
+      cards.replaceChildren();
+      list.replaceChildren();
+      $("#organic-web-threads").replaceChildren();
+      renderDomainPage(web, projects, links);
+      return;
+    }
+    cards.innerHTML = domains.map((domain, index) => {
+      const x = Math.max(8, Math.min(92, Number(domain.position?.x) || 50));
+      const y = Math.max(10, Math.min(90, Number(domain.position?.y) || 50));
+      const path = `/domains/${encodeURIComponent(domain.slug)}`;
+      const duration = Math.max(5, Math.min(14, 5 + Number(domain.threadLength || 60) / 10));
+      return `<a class="organic-domain-card" href="${escapeHTML(path)}" style="--domain-x:${x}%;--domain-y:${y}%;--suspension-duration:${duration}s;--sway-delay:${(index % 6) * -.55}s" aria-label="Explore ${escapeHTML(domain.title)}: ${escapeHTML(domain.description)}"><span class="domain-attachment" aria-hidden="true"></span><span class="domain-icon" aria-hidden="true">${domainIcon(domain.icon)}</span><strong>${escapeHTML(domain.title)}</strong><span class="domain-description">${escapeHTML(domain.description)}</span><span class="domain-open" aria-hidden="true">Explore ↗</span></a>`;
+    }).join("");
+    list.innerHTML = domains.map(domain =>
+      `<li><a href="${escapeHTML(`/domains/${encodeURIComponent(domain.slug)}`)}"><strong>${escapeHTML(domain.title)}</strong><span>${escapeHTML(domain.description)}</span></a></li>`
+    ).join("");
+    const point = domain => ({
+      x: (Math.max(8, Math.min(92, Number(domain.position?.x) || 50)) * 10),
+      y: (Math.max(10, Math.min(90, Number(domain.position?.y) || 50)) * 7) - 48
+    });
+    const paths = domains.map(domain => {
+      const end = point(domain);
+      const bend = Math.max(18, Math.min(100, Number(domain.threadLength) || 60));
+      const controlX = (500 + end.x) / 2 + (end.x - 500) * .1;
+      const controlY = (350 + end.y) / 2 - bend * .7;
+      return `<path class="domain-thread" d="M500 350 Q${controlX.toFixed(1)} ${controlY.toFixed(1)} ${end.x.toFixed(1)} ${end.y.toFixed(1)}"/>`;
+    });
+    const byId = new Map(domains.map(domain => [domain.id, domain]));
+    const connections = Array.isArray(web.connections) ? web.connections : [];
+    connections.forEach(connection => {
+      const from = byId.get(connection.from);
+      const to = byId.get(connection.to);
+      if (!from || !to || from.id === to.id) return;
+      const a = point(from);
+      const b = point(to);
+      const bend = ((Number(from.threadLength) || 60) + (Number(to.threadLength) || 60)) / 2;
+      paths.push(`<path class="domain-connection" d="M${a.x.toFixed(1)} ${a.y.toFixed(1)} Q${((a.x + b.x) / 2).toFixed(1)} ${((a.y + b.y) / 2 - bend * .2).toFixed(1)} ${b.x.toFixed(1)} ${b.y.toFixed(1)}"/>`);
+    });
+    $("#organic-web-threads").innerHTML = paths.join("");
+    canvas.style.setProperty("--domain-count", domains.length);
+    renderDomainPage(web, projects, links);
   }
 
   function renderRichText(element, value) {
@@ -213,6 +298,7 @@
     renderProfilePhotos();
 
     renderProjects(Array.isArray(content.projects) ? content.projects : []);
+    renderOrganicWeb(content.web || {}, Array.isArray(content.projects) ? content.projects : [], Array.isArray(content.links) ? content.links : []);
     const contact = content.contact && typeof content.contact === "object" ? content.contact : {};
     const email = String(contact.email || "").trim();
     const emailPath = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "";
@@ -233,67 +319,6 @@
         : "";
     }).join("");
   }
-
-  function setPageInert(inert) {
-    [$(".header"), $("main"), $("footer")].forEach(element => {
-      if (element) element.inert = inert;
-    });
-  }
-  const welcome = $("#welcome-entry");
-  const reveal = $("#web-reveal");
-  let introEntered = false;
-  function closeWelcome(destination) {
-    welcome.classList.add("is-dismissed");
-    welcome.setAttribute("aria-hidden", "true");
-    welcome.setAttribute("aria-modal", "false");
-    setPageInert(false);
-    try { sessionStorage.setItem("portfolio-intro-entered", "1"); }
-    catch (error) { console.warn("Could not save the intro preference for this tab.", error); }
-    if (destination) {
-      window.location.hash = destination;
-    } else {
-      $(".brand", $(".header"))?.focus();
-    }
-    setTimeout(() => { welcome.hidden = true; }, window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? 0 : 500);
-  }
-  function enterWelcome() {
-    if (introEntered) return;
-    introEntered = true;
-    welcome.classList.add("is-entering");
-    welcome.focus();
-    $("#entry-enter").disabled = true;
-    $("#entry-skip").disabled = true;
-    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    const revealNavigation = () => {
-      reveal.setAttribute("aria-hidden", "false");
-      welcome.classList.add("is-revealed");
-      $("#web-continue").focus();
-    };
-    setTimeout(revealNavigation, reduceMotion ? 0 : 680);
-  }
-  let alreadyEntered = false;
-  try { alreadyEntered = sessionStorage.getItem("portfolio-intro-entered") === "1"; }
-  catch (error) { console.warn("Could not read the intro preference for this tab.", error); }
-  if (alreadyEntered) {
-    welcome.hidden = true;
-    welcome.setAttribute("aria-hidden", "true");
-  } else {
-    setPageInert(true);
-    $("#entry-enter").focus();
-  }
-  $("#entry-enter").addEventListener("click", enterWelcome);
-  $("#entry-skip").addEventListener("click", () => closeWelcome());
-  $("#web-continue").addEventListener("click", () => closeWelcome());
-  $$(".web-node").forEach(link => link.addEventListener("click", event => {
-    event.preventDefault();
-    closeWelcome(link.getAttribute("href"));
-  }));
-  welcome.addEventListener("keydown", event => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      closeWelcome();
-    }
-  });
 
   if (!window.supabase?.createClient) {
     console.error("Supabase client unavailable; portfolio content was not loaded.");

@@ -17,4 +17,38 @@ html[data-admin-theme="dark"] body{background:var(--bg);color:var(--ink)}html[da
 html[data-admin-theme="dark"]{--bg:#242424;--panel:#2d2d2d;--ink:#e8c76d;--muted:#c0b17e;--line:#e8c76d33;--gold:#e4c15f}
 html[data-admin-theme="dark"] .editor textarea,html[data-admin-theme="dark"] .editor input,html[data-admin-theme="dark"] .project-edit textarea,html[data-admin-theme="dark"] .project-edit input,html[data-admin-theme="dark"] .link-row input,html[data-admin-theme="dark"] .link-row select,html[data-admin-theme="dark"] .photo-alt-label input,html[data-admin-theme="dark"] .photo-theme-label select{background:#353535;color:var(--ink);border-color:var(--line)}
 .photo-theme-label{flex:1;min-width:100%;font-size:10px}
-.photo-theme-label select{width:100%;margin-top:5px;border:1px solid var(--line);border-radius:6px;padding:8px;background:var(--bg);color:var(--ink)}}
+.photo-theme-label select{width:100%;margin-top:5px;border:1px solid var(--line);border-radius:6px;padding:8px;background:var(--bg);color:var(--ink)}
+
+.domain-settings,.domain-add-form{max-width:980px}
+.domain-add-form h3{margin:8px 0 18px;font:600 19px var(--display)}
+.editor input,.domain-edit input,.domain-edit textarea,.domain-edit select{display:block;width:100%;border:1px solid #e3ddd2;background:#fdfcf9;color:#2c2923;border-radius:7px;padding:10px;outline:none;font-size:12px}
+.editor input:focus,.domain-edit input:focus,.domain-edit textarea:focus,.domain-edit select:focus{border-color:#b18b43;box-shadow:0 0 0 3px #b18b4318}
+.domain-manager-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:32px 0 14px}
+.domain-manager-toolbar h3{margin:0;font:600 18px var(--display)}
+.domain-editor-list{display:grid;gap:16px}
+.domain-edit{padding:20px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.domain-edit-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}
+.domain-edit-head>div:first-child{display:grid;gap:4px}
+.domain-edit-head strong{font:600 18px var(--display)}
+.domain-edit .card-order{display:flex;align-items:center;gap:6px}
+.domain-edit .card-order .button{padding:8px 10px}
+.domain-edit .remove-card{border:1px solid #d6b8b2;border-radius:6px;padding:8px 10px;background:#fff8f6;color:#994e42;cursor:pointer}
+.domain-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}
+.domain-fields>label{display:block;min-width:0;font-size:10px;font-weight:700}
+.domain-fields input,.domain-fields textarea,.domain-fields select{margin-top:6px}
+.domain-fields select[multiple]{min-height:90px}
+.domain-fields small{display:block;margin-top:5px;color:var(--muted);font-weight:400}
+.domain-fields .domain-field-wide{grid-column:1/-1}
+.domain-fields .visibility-control{display:flex;align-items:center;gap:8px}
+.domain-fields .visibility-control input{width:auto;margin:0}
+.domain-previews{display:grid;grid-template-columns:120px 1fr;align-items:center;gap:14px;padding-top:18px;margin-top:18px;border-top:1px solid var(--line);font-size:10px;font-weight:700}
+.domain-previews>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.domain-previews article{display:grid;gap:5px;padding:14px;border:1px solid #d7b56d55;border-radius:8px;background:#171613;color:#f4f0e6}
+.domain-previews article[data-preview-theme="light"]{border-color:#8f6acb55;background:#e8ddf5;color:#422d61}
+.domain-previews article b{font-size:8px;letter-spacing:1px;text-transform:uppercase;opacity:.7}
+.domain-previews article strong{font:600 14px var(--display)}
+.domain-previews article small{font-size:9px;font-weight:400}
+.domain-publish-actions{justify-content:flex-end}
+.domain-publish-actions>span{margin-right:auto;color:var(--muted);font-size:10px}
+@media(max-width:900px){.domain-edit-head{align-items:flex-start;flex-direction:column}.domain-edit .card-order{flex-wrap:wrap}}
+@media(max-width:700px){.domain-fields{grid-template-columns:1fr}.domain-fields .domain-field-wide{grid-column:auto}.domain-previews{grid-template-columns:1fr}.domain-previews>div{grid-template-columns:1fr 1fr}.domain-manager-toolbar{align-items:flex-start;flex-direction:column}.domain-publish-actions{align-items:stretch;flex-direction:column}.domain-publish-actions>span{margin-right:0}}
