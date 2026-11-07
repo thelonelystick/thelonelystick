@@ -12,7 +12,7 @@
     siteCopy: {},
     heroImage: "",
     profilePhotos: [],
-    contact: {email: "", message: ""},
+    contact: {email: "", message: "", whatsapp: ""},
     links: [],
     projects: []
   };
@@ -86,7 +86,7 @@
         ...saved,
         siteCopy: saved.siteCopy && typeof saved.siteCopy === "object" ? saved.siteCopy : {},
         heroImage: typeof saved.heroImage === "string" ? saved.heroImage : "",
-        contact: saved.contact && typeof saved.contact === "object" ? saved.contact : {email: "", message: ""},
+        contact: saved.contact && typeof saved.contact === "object" ? saved.contact : {email: "", message: "", whatsapp: ""},
         profilePhotos: Array.isArray(saved.profilePhotos) ? saved.profilePhotos.slice(0, 6) : [],
         links: Array.isArray(saved.links) ? saved.links : [],
         projects: Array.isArray(saved.projects) ? saved.projects : []
@@ -420,12 +420,18 @@
 
   function renderContact() {
     $("#contact-address").value = content.contact.email;
+    $("#contact-whatsapp").value = content.contact.whatsapp || "";
     $("#contact-copy").value = content.contact.message;
   }
   $("#contact-form").addEventListener("submit", async event => {
     event.preventDefault();
     const previous = content.contact;
-    content.contact = {email: $("#contact-address").value.trim(), message: $("#contact-copy").value.trim()};
+    content.contact = {
+      ...previous,
+      email: $("#contact-address").value.trim(),
+      whatsapp: $("#contact-whatsapp").value.trim(),
+      message: $("#contact-copy").value.trim()
+    };
     try {
       await publishContent();
       setStatus("#contact-status", "Contact details published.");
