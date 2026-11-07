@@ -226,7 +226,6 @@
     const whatsappLinkNumber = whatsappDigits.length === 10 ? `91${whatsappDigits}` : whatsappDigits;
     whatsapp.hidden = !/^\d{11,15}$/.test(whatsappLinkNumber);
     whatsapp.href = whatsapp.hidden ? "#" : `https://wa.me/${whatsappLinkNumber}`;
-    whatsapp.textContent = whatsapp.hidden ? "" : `WhatsApp · ${whatsappNumber}`;
     $("#social-links").innerHTML = (Array.isArray(content.links) ? content.links : []).map(link => {
       const href = safeLink(link.url || "");
       return link.label && href
