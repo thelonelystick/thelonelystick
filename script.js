@@ -36,6 +36,7 @@
   const themeToggle = $("#theme-toggle");
   const root = document.documentElement;
   let activeProfilePhotos = [];
+  let activeHeroImage = "";
   let theme = localStorage.getItem("bhawishya-theme") ||
     (window.matchMedia?.("(prefers-color-scheme: light)").matches ? "light" : "dark");
   function applyTheme(next) {
@@ -67,8 +68,10 @@
     }
   };
   function renderProfilePhotos() {
-    const profileStack = $("#profile-stack");
-    if (!profileStack) return;
+    const displayStack = $("#home-display-stack");
+    const heroVisual = $(".hero-visual");
+    const heroImageElement = $("#hero-display-image");
+    if (!displayStack || !heroVisual || !heroImageElement) return;
     const photos = activeProfilePhotos
       .filter(photo => {
         if (!photo || photo.visible === false || !safeImage(photo.url)) return false;
@@ -76,12 +79,33 @@
         return photoTheme === "both" || photoTheme === theme;
       })
       .slice(0, 3);
-    profileStack.innerHTML = photos.map((photo, index) =>
-      `<img class="profile-photo profile-photo-${index + 1}" src="${escapeHTML(safeImage(photo.url))}" alt="${escapeHTML(photo.alt || `Profile photo ${index + 1}`)}" loading="lazy" decoding="async">`
+    displayStack.classList.toggle("is-single", photos.length === 1);
+    displayStack.innerHTML = photos.map((photo, index) =>
+      `<img class="home-display-photo home-display-photo-${index + 1}" src="${escapeHTML(safeImage(photo.url))}" alt="${escapeHTML(photo.alt || `Home display image ${index + 1}`)}" loading="lazy" decoding="async">`
     ).join("");
-    $$("img", profileStack).forEach(image => image.addEventListener("error", () => {
-      console.warn("A profile photo could not be loaded.");
+    displayStack.hidden = photos.length === 0;
+    heroVisual.classList.toggle("has-display-photos", photos.length > 0);
+    heroImageElement.hidden = photos.length > 0 || !activeHeroImage;
+    if (activeHeroImage && photos.length === 0) {
+      heroImageElement.src = activeHeroImage;
+      heroVisual.classList.add("has-image");
+    } else {
+      heroImageElement.removeAttribute("src");
+      heroVisual.classList.remove("has-image");
+    }
+    $$("img", displayStack).forEach(image => image.addEventListener("error", () => {
+      console.warn("A home display photo could not be loaded.");
       image.remove();
+      const remainingPhotos = $$("img", displayStack);
+      heroVisual.classList.toggle("has-display-photos", remainingPhotos.length > 0);
+      displayStack.hidden = remainingPhotos.length === 0;
+      if (remainingPhotos.length === 0) {
+        heroImageElement.hidden = !activeHeroImage;
+        if (activeHeroImage) {
+          heroImageElement.src = activeHeroImage;
+          heroVisual.classList.add("has-image");
+        }
+      }
     }, {once: true}));
   }
   const safeLink = value => {
@@ -179,24 +203,13 @@
     renderCopy(content.siteCopy || {});
     const heroLead = $("[data-copy='heroLead']");
     if (heroLead) heroLead.textContent = content.siteCopy?.heroLead || "";
-    const heroImage = safeImage(content.heroImage || "");
-    const heroVisual = $(".hero-visual");
+    activeHeroImage = safeImage(content.heroImage || "");
     const heroImageElement = $("#hero-display-image");
-    if (heroVisual && heroImageElement) {
-      heroImageElement.hidden = !heroImage;
-      if (heroImage) {
-        heroImageElement.src = heroImage;
-        heroVisual.classList.add("has-image");
-      } else {
-        heroImageElement.removeAttribute("src");
-        heroVisual.classList.remove("has-image");
-      }
-      heroImageElement.onerror = () => {
-        console.warn("The featured homepage image could not be loaded.");
-        heroImageElement.hidden = true;
-        heroVisual.classList.remove("has-image");
-      };
-    }
+    heroImageElement.onerror = () => {
+      console.warn("The featured homepage image could not be loaded.");
+      heroImageElement.hidden = true;
+      $(".hero-visual").classList.remove("has-image");
+    };
     renderProfilePhotos();
 
     renderProjects(Array.isArray(content.projects) ? content.projects : []);

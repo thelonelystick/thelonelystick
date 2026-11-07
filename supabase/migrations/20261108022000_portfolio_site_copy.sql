@@ -41,7 +41,7 @@ set content = (content - 'heroTitle' - 'heroLead') || jsonb_build_object(
     "contactAction": "Get in touch",
     "footerNote": "Student developer. Always learning.",
     "backToTop": "BACK TO TOP ↑",
-    "footerOwner": "Bhawishya Sooryavanshi",
+    "footerOwner": "Bhawishya Kumar Sooryavanshi",
     "footerMadeWith": "MADE WITH CURIOSITY"
   }
   $site_copy$::jsonb

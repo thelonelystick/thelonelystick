@@ -69,6 +69,35 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="ambient-background" aria-hidden="true">
+    <svg class="magma-cracks" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="magma-line" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#ffec72"/>
+          <stop offset=".48" stop-color="#ff9b24"/>
+          <stop offset="1" stop-color="#f34b15"/>
+        </linearGradient>
+        <filter id="magma-glow" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <g fill="none" stroke="url(#magma-line)" stroke-linecap="round" stroke-linejoin="round" filter="url(#magma-glow)">
+        <path class="magma-line magma-line-one" d="M75 90 132 151 118 216 181 267 154 337 228 391 206 467 272 518 249 596 319 651 287 728 361 786 340 865 421 927"/>
+        <path class="magma-line magma-line-two" d="M130 216 67 244 34 301M169 331 235 321 278 272M221 459 155 488 118 551M268 583 333 565 379 516M305 690 237 718 197 776M354 818 425 793 471 748"/>
+        <path class="magma-line magma-line-three" d="M1508 62 1449 123 1471 193 1400 247 1427 318 1351 369 1378 444 1305 501 1329 577 1251 630 1274 709 1193 761 1215 842 1137 908"/>
+        <path class="magma-line magma-line-four" d="M1454 177 1519 204 1558 261M1391 294 1327 277 1281 228M1357 416 1421 444 1461 503M1317 551 1251 532 1207 482M1266 675 1335 699 1372 758M1201 803 1135 780 1088 733"/>
+        <path class="magma-line magma-line-five" d="M615 1000 654 927 621 862 679 799 650 731 709 669"/>
+        <path class="magma-line magma-line-six" d="M1010 0 980 76 1018 137 963 202 990 267"/>
+      </g>
+      <g class="magma-embers" fill="#ffd564">
+        <circle cx="181" cy="267" r="3"/><circle cx="272" cy="518" r="3"/><circle cx="361" cy="786" r="3"/>
+        <circle cx="1400" cy="247" r="3"/><circle cx="1305" cy="501" r="3"/><circle cx="1193" cy="761" r="3"/>
+        <circle cx="679" cy="799" r="2.5"/><circle cx="963" cy="202" r="2.5"/>
+      </g>
+    </svg>
+    <span class="cloud cloud-one"></span><span class="cloud cloud-two"></span><span class="cloud cloud-three"></span>
+  </div>
   <section class="welcome-entry" id="welcome-entry" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
     <div class="entry-panel entry-panel-left"><span class="entry-kicker">A PERSONAL PORTFOLIO</span><span class="entry-words" aria-hidden="true">Welcome to my</span></div>
     <div class="entry-panel entry-panel-right"><span class="entry-kicker" data-copy="entryOwner"></span><span class="entry-words" aria-hidden="true">web</span></div>
@@ -109,12 +138,12 @@
         <div class="eyebrow"><span class="status"></span><span data-copy="heroEyebrow"></span></div>
         <h1 data-copy="heroTitle"></h1>
         <p class="lead" data-copy="heroLead"></p>
-        <div class="profile-stack" id="profile-stack" aria-label="Profile photographs"></div>
         <div class="actions"><a class="btn btn-gold" href="#projects"><span data-copy="heroPrimaryAction"></span> <span aria-hidden="true">↘</span></a><a class="btn btn-outline" href="#about" data-copy="heroSecondaryAction"></a></div>
         <div class="hero-caption"><span data-copy="heroCaptionFirst"></span><i></i><span data-copy="heroCaptionSecond"></span></div>
       </div>
       <div class="hero-visual" aria-label="Featured home image">
         <div class="halo halo-one"></div><div class="halo halo-two"></div><div class="halo halo-three"></div>
+        <div class="home-display-stack" id="home-display-stack" aria-label="Home display images"></div>
         <img class="hero-display-image" id="hero-display-image" alt="Featured image" hidden>
         <div class="monogram"><img class="monogram-logo" src="logo.gif" alt=""><small data-copy="monogramLabel"></small></div>
         <div class="floating-note note-top"><span class="note-star">✳</span><span data-copy="heroNote"></span></div>
@@ -152,12 +181,13 @@
       </div>
     </section>
 
-    <section class="contact wrap" id="contact">
+  <div class="page-end-box">
+    <section class="contact" id="contact">
       <div class="contact-box"><div class="contact-orb"></div><div class="kicker" data-copy="contactKicker"></div><h2 data-copy="contactTitle"></h2><p id="contact-message"></p><a class="btn btn-gold" id="contact-email" href="#"><span data-copy="contactAction"></span> <span aria-hidden="true">↗</span></a><a class="contact-address" id="contact-address" href="#"></a><div class="social-links" id="social-links" aria-label="Social links"></div></div>
     </section>
+    <footer class="footer wrap"><a class="brand" href="#home"><img class="brand-logo" src="logo.gif" alt=""><span><span data-copy="brandLong"></span><span class="gold">.</span></span></a><span class="footer-note" data-copy="footerNote"></span><a class="back-top" href="#home" data-copy="backToTop"></a><div class="footer-bottom"><span>© <span id="year"></span> <span data-copy="footerOwner"></span></span><span><span data-copy="footerMadeWith"></span> <b class="gold">✳</b></span><a class="admin-link" href="admin.html">Admin</a></div></footer>
+  </div>
   </main>
-
-  <footer class="footer wrap"><a class="brand" href="#home"><img class="brand-logo" src="logo.gif" alt=""><span><span data-copy="brandLong"></span><span class="gold">.</span></span></a><span class="footer-note" data-copy="footerNote"></span><a class="back-top" href="#home" data-copy="backToTop"></a><div class="footer-bottom"><span>© <span id="year"></span> <span data-copy="footerOwner"></span></span><span><span data-copy="footerMadeWith"></span> <b class="gold">✳</b></span><a class="admin-link" href="admin.html">Admin</a></div></footer>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="script.js"></script>
 </body>
