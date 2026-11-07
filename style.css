@@ -44,3 +44,4 @@ html[data-theme="light"] .nav.open{background:#fffefa}
 .admin-link{color:inherit;opacity:.55;margin-left:12px}.admin-link:hover{opacity:1;color:var(--gold)}
 @media(max-width:800px){.theme-toggle{margin-left:auto;margin-right:12px}.header{gap:8px}}
 @media(max-width:540px){.theme-toggle{padding:7px 9px;margin-right:5px}.theme-toggle-label{display:none}.nav{z-index:10}}
+ .brand-logo{width:29px;height:29px;display:block;object-fit:cover;border:1px solid #d7b56d8a;border-radius:7px}.monogram-logo{width:150px;height:150px;display:block;object-fit:cover;border:1px solid #d7b56d8a;border-radius:12px;box-shadow:0 0 35px #d7b56d33}
