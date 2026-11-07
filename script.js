@@ -1,10 +1,37 @@
 (() => {
   "use strict";
-  const $ = (s, root = document) => root.querySelector(s);
-  const $$ = (s, root = document) => [...root.querySelectorAll(s)];
+  const $ = (selector, root = document) => root.querySelector(selector);
+  const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+  const SUPABASE_URL = "https://lltnosossejymzvddeee.supabase.co";
+  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable__mdO3XEbIwSJDnGXyqSlFg_g7TxWpSF";
+  const CONTENT_TABLE = "portfolio_content";
+
+  const defaults = {
+    heroTitle: 'Building my skills.<br>Bringing ideas <span class="gold-text">to life.</span>',
+    heroLead: "I'm Bhawishya, a student developer exploring web technologies, AI-powered tools, and digital products. I learn by building — one idea, one experiment, and one project at a time.",
+    heroImage: "",
+    profilePhotos: [],
+    contact: {
+      email: "sooryavanshibhawishya@gmail.com",
+      message: "Have a project idea, a suggestion, or an opportunity to learn and collaborate? I'd be glad to hear from you."
+    },
+    links: [
+      {label: "GitHub", url: "https://github.com/thelonelystick", type: "Code"},
+      {label: "YouTube", url: "", type: "Video"},
+      {label: "Instagram", url: "", type: "Social"}
+    ],
+    projects: [
+      {title: "AstroGPT", description: "An educational Jyotisha-inspired web experience combining traditional interpretations with a modern interface and calculation-focused exploration.", kind: "astro", meta: "WEB PROJECT · INTERACTIVE EXPERIENCE", tags: ["Web Development", "UI Design", "Research"], url: "https://astro-gpt-rho.vercel.app", image: "", visible: true},
+      {title: "SCARLET", description: "A personal assistant concept for voice and text conversations, task management, routines, and monthly budgeting.", kind: "scarlet", meta: "AI CONCEPT · PRODUCTIVITY", tags: ["AI Assistants", "Product Thinking"], url: "", image: "", visible: true},
+      {title: "PurpleDevs", description: "A digital services brand concept for websites, customized web tools, social media support, and AI solutions.", kind: "purpledevs", meta: "BRAND CONCEPT · DIGITAL SERVICES", tags: ["Web Services", "Branding", "AI Tools"], url: "", image: "", visible: true},
+      {title: "FUZION COACHING INSTITUTE", description: "A coaching management system concept for organizing student learning, teacher workflows, parent visibility, and administration.", kind: "fuzion", meta: "EDTECH CONCEPT · DASHBOARD", tags: ["EdTech", "Dashboard UX", "Firebase"], url: "", image: "", visible: true}
+    ]
+  };
+  const escapeHTML = value => String(value ?? "").replace(/[&<>"']/g, character =>
+    ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[character]));
+
   const menuToggle = $(".menu-toggle");
   const nav = $(".nav");
-
   if (menuToggle && nav) {
     menuToggle.addEventListener("click", () => {
       const open = nav.classList.toggle("open");
@@ -27,43 +54,57 @@
 
   const year = $("#year");
   if (year) year.textContent = String(new Date().getFullYear());
-
-  const toggle = $("#theme-toggle");
+  const themeToggle = $("#theme-toggle");
   const root = document.documentElement;
+  let activeProfilePhotos = [];
   let theme = localStorage.getItem("bhawishya-theme") ||
     (window.matchMedia?.("(prefers-color-scheme: light)").matches ? "light" : "dark");
-
   function applyTheme(next) {
     theme = next === "light" ? "light" : "dark";
     root.dataset.theme = theme;
-    if (!toggle) return;
-    const isLight = theme === "light";
-    toggle.setAttribute("aria-label", isLight ? "Switch to dark theme" : "Switch to light theme");
-    toggle.title = isLight ? "Switch to Solar dark theme" : "Switch to Lunar light theme";
-    const icon = toggle.querySelector("span:first-child");
-    const label = toggle.querySelector(".theme-toggle-label");
-    if (icon) icon.textContent = isLight ? "☾" : "☼";
-    if (label) label.textContent = isLight ? "Lunar" : "Solar";
+    renderProfilePhotos();
+    if (!themeToggle) return;
+    const light = theme === "light";
+    themeToggle.setAttribute("aria-label", light ? "Switch to dark theme" : "Switch to light theme");
+    themeToggle.title = light ? "Switch to Solar dark theme" : "Switch to Lunar light theme";
+    const icon = $("span:first-child", themeToggle);
+    const label = $(".theme-toggle-label", themeToggle);
+    if (icon) icon.textContent = light ? "☾" : "☼";
+    if (label) label.textContent = light ? "Lunar" : "Solar";
   }
   applyTheme(theme);
-  toggle?.addEventListener("click", () => {
+  themeToggle?.addEventListener("click", () => {
     const next = theme === "dark" ? "light" : "dark";
     localStorage.setItem("bhawishya-theme", next);
     applyTheme(next);
   });
 
-  const escapeHTML = value => String(value ?? "").replace(/[&<>"']/g, character =>
-    ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[character]));
   const safeImage = value => {
-    if (!value) return "";
-    if (/^data:image\/(?:png|jpeg|webp|gif);base64,/i.test(value)) return value;
     try {
-      const url = new URL(value, window.location.href);
+      const url = new URL(value);
       return ["http:", "https:"].includes(url.protocol) ? url.href : "";
     } catch {
       return "";
     }
   };
+  function renderProfilePhotos() {
+    const profileStack = $("#profile-stack");
+    if (!profileStack) return;
+    const photos = activeProfilePhotos
+      .filter(photo => {
+        if (!photo || photo.visible === false || !safeImage(photo.url)) return false;
+        const photoTheme = ["dark", "light"].includes(photo.theme) ? photo.theme : "both";
+        return photoTheme === "both" || photoTheme === theme;
+      })
+      .slice(0, 3);
+    profileStack.innerHTML = photos.map((photo, index) =>
+      `<img class="profile-photo profile-photo-${index + 1}" src="${escapeHTML(safeImage(photo.url))}" alt="${escapeHTML(photo.alt || `Profile photo ${index + 1}`)}" loading="lazy" decoding="async">`
+    ).join("");
+    $$("img", profileStack).forEach(image => image.addEventListener("error", () => {
+      console.warn("A profile photo could not be loaded.");
+      image.remove();
+    }, {once: true}));
+  }
   const safeLink = value => {
     try {
       const url = new URL(value);
@@ -72,81 +113,196 @@
       return "";
     }
   };
-  const defaults = [
-    {kind:"astro",meta:"WEB PROJECT · INTERACTIVE EXPERIENCE",tags:["Web Development","UI Design","Research"],url:"https://astro-gpt-rho.vercel.app"},
-    {kind:"scarlet",meta:"AI CONCEPT · PRODUCTIVITY",tags:["AI Assistants","Product Thinking"]},
-    {kind:"purpledevs",meta:"BRAND CONCEPT · DIGITAL SERVICES",tags:["Web Services","Branding","AI Tools"]},
-    {kind:"fuzion",meta:"EDTECH CONCEPT · DASHBOARD",tags:["EdTech","Dashboard UX","Firebase"]}
-  ];
-  const artFor = kind => ({
-    astro:'<div class="planet"></div><div class="planet-ring"></div>',
-    scarlet:'<div class="ai-panel"><div class="panel-top"><i></i><i></i><i></i><span>SCARLET / ASSISTANT</span></div><div class="soundwave"><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b></div><div class="ai-caption">A SECOND BRAIN, DESIGNED AROUND YOU</div></div>',
-    purpledevs:'<div class="pd-mark">P<span>D</span></div><div class="pd-orbit"></div>',
-    fuzion:'<div class="edu-card"><span class="edu-star">✳</span><strong>Learn with clarity.</strong><div class="edu-lines"><i></i><i></i><i></i></div><small>STUDENT · TEACHER · PARENT</small></div>'
+  const defaultArt = kind => ({
+    astro: '<div class="planet"></div><div class="planet-ring"></div>',
+    scarlet: '<div class="ai-panel"><div class="panel-top"><i></i><i></i><i></i><span>SCARLET / ASSISTANT</span></div><div class="soundwave"><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b></div><div class="ai-caption">A SECOND BRAIN, DESIGNED AROUND YOU</div></div>',
+    purpledevs: '<div class="pd-mark">P<span>D</span></div><div class="pd-orbit"></div>',
+    fuzion: '<div class="edu-card"><span class="edu-star">✳</span><strong>Learn with clarity.</strong><div class="edu-lines"><i></i><i></i><i></i></div><small>STUDENT · TEACHER · PARENT</small></div>'
   }[kind] || '<span class="custom-project-mark">PROJECT</span>');
-  let saved = null;
-  try {
-    saved = JSON.parse(localStorage.getItem("bhawishya-site-content") || "null");
-  } catch (error) {
-    console.warn("Could not load locally saved site content.", error);
+  const projectMarkup = (project, index) => {
+    const kind = ["astro", "scarlet", "purpledevs", "fuzion"].includes(project.kind) ? project.kind : "custom";
+    const image = safeImage(project.image || "");
+    const destination = safeLink(project.url || "");
+    let domain = "";
+    try { domain = destination ? new URL(destination).hostname.replace(/^www\./, "") : "Portfolio preview"; }
+    catch { domain = "Portfolio preview"; }
+    const tags = Array.isArray(project.tags) ? project.tags : [];
+    const art = image
+      ? `<img class="project-image" src="${escapeHTML(image)}" alt="${escapeHTML(project.title)} project preview" loading="lazy" decoding="async">`
+      : `${defaultArt(kind)}${kind === "astro" ? `<div class="art-word">${escapeHTML(project.title)}<span>✳</span></div>` : ""}`;
+    const inner = `<div class="browser-bar"><span class="browser-controls" aria-hidden="true"><i></i><i></i><i></i></span><span class="browser-title">${escapeHTML(project.title)}</span><span class="browser-domain">${escapeHTML(domain)}</span></div><div class="project-art ${kind}${image ? " has-screenshot" : ""}"><span class="art-label">${escapeHTML(project.meta || "PROJECT")}</span><span class="art-number">${String(index + 1).padStart(2, "0")}</span>${art}</div><div class="project-body"><div class="project-meta">${escapeHTML(project.meta || "PROJECT")}</div><h3>${escapeHTML(project.title)}</h3><p>${escapeHTML(project.description)}</p><div class="tags">${tags.map(tag => `<span>${escapeHTML(tag)}</span>`).join("")}</div></div>`;
+    return destination
+      ? `<a class="project-card" href="${escapeHTML(destination)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeHTML(project.title)} project">${inner}</a>`
+      : `<article class="project-card">${inner}</article>`;
+  };
+
+  function renderProjects(projects) {
+    const visible = projects.filter(project => project.visible !== false);
+    const projectGrid = $("#project-grid");
+    projectGrid.dataset.count = String(visible.length);
+    projectGrid.innerHTML = visible.map(projectMarkup).join("");
+    $$(".project-image", projectGrid).forEach(image => image.addEventListener("error", () => {
+      console.warn("A project preview image could not be loaded.");
+      const art = image.closest(".project-art");
+      const card = image.closest(".project-card");
+      const kind = ["astro", "scarlet", "purpledevs", "fuzion"].find(name => art.classList.contains(name)) || "custom";
+      image.remove();
+      art.classList.remove("has-screenshot");
+      art.insertAdjacentHTML("beforeend", defaultArt(kind));
+      if (kind === "astro") {
+        const title = document.createElement("div");
+        const mark = document.createElement("span");
+        title.className = "art-word";
+        title.append(document.createTextNode($("h3", card).textContent));
+        mark.textContent = "✳";
+        title.append(mark);
+        art.append(title);
+      }
+    }, {once: true}));
+    $("#web-domain-cards").innerHTML = visible.slice(0, 4).map(project => {
+      const destination = safeLink(project.url || "");
+      const label = `<span class="domain-index">DOMAIN / ${escapeHTML((project.meta || "PROJECT").split(" · ")[0])}</span><strong>${escapeHTML(project.title)}</strong>`;
+      return destination
+        ? `<a class="web-domain-card" href="${escapeHTML(destination)}" target="_blank" rel="noopener noreferrer">${label}<span aria-hidden="true">↗</span></a>`
+        : `<div class="web-domain-card">${label}</div>`;
+    }).join("");
+    $$(".project-card").forEach(card => {
+      card.addEventListener("pointerenter", () => {
+        $$(".project-card.is-raised").forEach(active => active.classList.remove("is-raised"));
+        card.classList.add("is-raised");
+      });
+      card.addEventListener("focusin", () => {
+        $$(".project-card.is-raised").forEach(active => active.classList.remove("is-raised"));
+        card.classList.add("is-raised");
+      });
+    });
   }
-  if (saved) {
+
+  function renderContent(saved = {}) {
+    const content = {
+      ...defaults,
+      ...saved,
+      contact: {...defaults.contact, ...(saved.contact || {})},
+      links: Array.isArray(saved.links) ? saved.links : defaults.links,
+      profilePhotos: Array.isArray(saved.profilePhotos) ? saved.profilePhotos : [],
+      projects: Array.isArray(saved.projects) ? saved.projects : defaults.projects
+    };
+    activeProfilePhotos = content.profilePhotos;
     const title = $("[data-editable='heroTitle']");
     const lead = $("[data-editable='heroLead']");
-    if (title && saved.heroTitle) {
-      title.innerHTML = escapeHTML(saved.heroTitle)
+    if (title && content.heroTitle) {
+      title.innerHTML = escapeHTML(content.heroTitle)
         .replace(/&lt;br\s*\/?&gt;/gi, "<br>")
         .replace(/&lt;span class=&quot;gold-text&quot;&gt;/gi, '<span class="gold-text">')
         .replace(/&lt;\/span&gt;/gi, "</span>");
     }
-    if (lead && saved.heroLead) lead.textContent = saved.heroLead;
-
-    const heroImage = safeImage(saved.heroImage || "");
+    if (lead && content.heroLead) lead.textContent = content.heroLead;
+    const heroImage = safeImage(content.heroImage || "");
     const heroVisual = $(".hero-visual");
     const heroImageElement = $("#hero-display-image");
-    if (heroVisual && heroImageElement && heroImage) {
-      heroImageElement.src = heroImage;
-      heroImageElement.hidden = false;
-      heroVisual.classList.add("has-image");
-    }
-    if (Array.isArray(saved.projects)) {
-      const grid = $("#project-grid");
-      if (grid) {
-        grid.innerHTML = saved.projects.map((project, index) => {
-          const item = {...(defaults[index] || {}), ...project};
-          const image = safeImage(item.image || "");
-          const url = safeLink(item.url || "");
-          const tags = Array.isArray(item.tags) ? item.tags : [];
-          return `<article class="project-card"><div class="project-art ${escapeHTML(item.kind || "custom")}"${image ? ' data-has-image="true"' : ""}><span class="art-label">${escapeHTML(item.meta || "PROJECT")}</span><span class="art-number">${String(index + 1).padStart(2, "0")}</span>${image ? `<img class="project-image" src="${escapeHTML(image)}" alt="${escapeHTML(item.title)}">` : artFor(item.kind)}${!image && item.kind === "astro" ? `<div class="art-word">${escapeHTML(item.title)}<span>✳</span></div>` : ""}</div><div class="project-body"><div class="project-meta">${escapeHTML(item.meta || "PROJECT")}</div><div class="project-title"><h3>${escapeHTML(item.title)}</h3>${url ? `<a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer" aria-label="Visit ${escapeHTML(item.title)}">↗</a>` : ""}</div><p>${escapeHTML(item.description)}</p><div class="tags">${tags.map(tag => `<span>${escapeHTML(tag)}</span>`).join("")}</div></div></article>`;
-        }).join("");
+    if (heroVisual && heroImageElement) {
+      heroImageElement.hidden = !heroImage;
+      if (heroImage) {
+        heroImageElement.src = heroImage;
+        heroVisual.classList.add("has-image");
+      } else {
+        heroImageElement.removeAttribute("src");
+        heroVisual.classList.remove("has-image");
       }
+      heroImageElement.onerror = () => {
+        console.warn("The featured homepage image could not be loaded.");
+        heroImageElement.hidden = true;
+        heroVisual.classList.remove("has-image");
+      };
     }
-    const contact = saved.contact || {};
-    const email = String(contact.email || "sooryavanshibhawishya@gmail.com").trim();
-    const message = $("#contact-message");
-    const emailButton = $("#contact-email");
-    const emailAddress = $("#contact-address");
-    if (message && contact.message) message.textContent = contact.message;
-    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      const emailPath = encodeURIComponent(email).replace(/%40/gi, "@");
-      const mailto = `mailto:${emailPath}?subject=Hello%20Bhawishya`;
-      if (emailButton) emailButton.href = mailto;
-      if (emailAddress) {
-        emailAddress.href = `mailto:${emailPath}`;
-        emailAddress.textContent = email;
-      }
-    }
+    renderProfilePhotos();
+
+    renderProjects(content.projects);
+    const email = String(content.contact.email || defaults.contact.email).trim();
+    const emailPath = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : defaults.contact.email;
+    $("#contact-message").textContent = content.contact.message || defaults.contact.message;
+    $("#contact-email").href = `mailto:${emailPath}?subject=Hello%20Bhawishya`;
+    $("#contact-address").href = `mailto:${emailPath}`;
+    $("#contact-address").textContent = emailPath;
+    $("#social-links").innerHTML = content.links.map(link => {
+      const href = safeLink(link.url || "");
+      return link.label && href
+        ? `<a href="${escapeHTML(href)}" target="_blank" rel="noopener noreferrer">${escapeHTML(link.label)} <span aria-hidden="true">↗</span></a>`
+        : "";
+    }).join("");
   }
-  try {
-    const savedLinks = JSON.parse(localStorage.getItem("bhawishya-social-links") || "null");
-    const container = $("#social-links");
-    if (container && Array.isArray(savedLinks)) {
-      container.innerHTML = savedLinks.map(link => {
-        const href = safeLink(link.url || "");
-        return link.label && href ? `<a href="${escapeHTML(href)}" target="_blank" rel="noopener noreferrer">${escapeHTML(link.label)} <span aria-hidden="true">↗</span></a>` : "";
-      }).join("");
-    }
-  } catch (error) {
-    console.warn("Could not load locally saved social links.", error);
+
+  function setPageInert(inert) {
+    [$(".header"), $("main"), $("footer")].forEach(element => {
+      if (element) element.inert = inert;
+    });
   }
+  const welcome = $("#welcome-entry");
+  const reveal = $("#web-reveal");
+  let introEntered = false;
+  function closeWelcome(destination) {
+    welcome.classList.add("is-dismissed");
+    welcome.setAttribute("aria-hidden", "true");
+    welcome.setAttribute("aria-modal", "false");
+    setPageInert(false);
+    try { sessionStorage.setItem("portfolio-intro-entered", "1"); }
+    catch (error) { console.warn("Could not save the intro preference for this tab.", error); }
+    if (destination) {
+      window.location.hash = destination;
+    } else {
+      $(".brand", $(".header"))?.focus();
+    }
+    setTimeout(() => { welcome.hidden = true; }, window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? 0 : 500);
+  }
+  function enterWelcome() {
+    if (introEntered) return;
+    introEntered = true;
+    welcome.classList.add("is-entering");
+    welcome.focus();
+    $("#entry-enter").disabled = true;
+    $("#entry-skip").disabled = true;
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const revealNavigation = () => {
+      reveal.setAttribute("aria-hidden", "false");
+      welcome.classList.add("is-revealed");
+      $("#web-continue").focus();
+    };
+    setTimeout(revealNavigation, reduceMotion ? 0 : 680);
+  }
+  let alreadyEntered = false;
+  try { alreadyEntered = sessionStorage.getItem("portfolio-intro-entered") === "1"; }
+  catch (error) { console.warn("Could not read the intro preference for this tab.", error); }
+  if (alreadyEntered) {
+    welcome.hidden = true;
+    welcome.setAttribute("aria-hidden", "true");
+  } else {
+    setPageInert(true);
+    $("#entry-enter").focus();
+  }
+  $("#entry-enter").addEventListener("click", enterWelcome);
+  $("#entry-skip").addEventListener("click", () => closeWelcome());
+  $("#web-continue").addEventListener("click", () => closeWelcome());
+  $$(".web-node").forEach(link => link.addEventListener("click", event => {
+    event.preventDefault();
+    closeWelcome(link.getAttribute("href"));
+  }));
+  welcome.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeWelcome();
+    }
+  });
+
+  renderContent();
+  if (!window.supabase?.createClient) {
+    console.warn("Supabase client unavailable; displaying the built-in portfolio content.");
+    return;
+  }
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+  void client.from(CONTENT_TABLE).select("content").eq("id", "published").maybeSingle()
+    .then(({data, error}) => {
+      if (error) throw error;
+      if (data?.content && typeof data.content === "object") renderContent(data.content);
+    })
+    .catch(error => console.warn("Could not load published portfolio content; displaying defaults.", error));
 })();
