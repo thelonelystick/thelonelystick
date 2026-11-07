@@ -6,9 +6,20 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="admin.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<div class="shell">
+<main class="auth-screen" id="auth-gate" aria-labelledby="auth-title">
+<section class="auth-card">
+<a class="brand" href="index.html"><span class="brand-icon">B</span><span>bhawishya<span class="gold">.</span></span></a>
+<span class="eyebrow">PERSONAL STUDIO</span>
+<h1 id="auth-title">Sign in to your admin studio</h1>
+<p>Continue with the authorized Google account to manage this site.</p>
+<button class="button primary" id="google-sign-in" type="button">Continue with Google ↗</button>
+<p class="auth-status" id="auth-status" role="status" aria-live="polite"></p>
+</section>
+</main>
+<div class="shell" id="admin-shell" hidden>
 <aside class="sidebar" id="sidebar">
 <a class="brand" href="index.html"><span class="brand-icon">B</span><span>bhawishya<span class="gold">.</span></span></a>
 <p class="eyebrow side-label">PERSONAL STUDIO</p>
@@ -23,12 +34,12 @@
 <div class="owner"><span class="avatar">BS</span><span><b>Site owner</b><small>Local preview mode</small></span><i></i></div>
 </aside>
 <main class="main">
-<header class="topbar"><button class="mobile-menu" id="mobile-menu" aria-label="Toggle sidebar">☰</button><div><small>Workspace / <b id="crumb">Overview</b></small><h1 id="page-title">Good to see you.</h1></div><div class="top-actions"><span class="draft">● Local draft</span><a class="button secondary" href="index.html" target="_blank" rel="noreferrer">Preview site ↗</a></div></header>
+<header class="topbar"><button class="mobile-menu" id="mobile-menu" aria-label="Toggle sidebar">☰</button><div><small>Workspace / <b id="crumb">Overview</b></small><h1 id="page-title">Good to see you.</h1></div><div class="top-actions"><span class="draft">● Local draft</span><a class="button secondary" href="index.html" target="_blank" rel="noreferrer">Preview site ↗</a><button class="button secondary" id="sign-out" type="button">Sign out</button></div></header>
 <section class="view active" id="view-overview">
 <div class="welcome"><div><span class="eyebrow">YOUR PERSONAL UNIVERSE</span><h2>One place for<br>everything you build.</h2><p>Manage your homepage, project cards, visual identity, and social destinations from this studio.</p><button class="button primary" data-go="homepage">Edit homepage ↗</button></div><div class="orb-art"><i></i><i></i><i></i><b>B<span>.</span></b><small>LEARN · MAKE · SHARE</small></div></div>
 <div class="stats"><article><small>CONTENT AREAS</small><strong>06</strong><span>Homepage, projects, links & more</span></article><article><small>PROJECT CARDS</small><strong id="project-count">04</strong><span>Shown on the homepage</span></article><article><small>THEME PRESETS</small><strong>02</strong><span>Solar dark / Lunar light</span></article></div>
 <div class="panel"><span class="eyebrow">QUICK ACTIONS</span><h3>Make a change</h3><div class="quick"><button data-go="homepage"><b>✳</b><strong>Homepage copy</strong><small>Update your introduction</small></button><button data-go="projects"><b>▦</b><strong>Projects & domains</strong><small>Edit project cards</small></button><button data-go="appearance"><b>◐</b><strong>Visual appearance</strong><small>Choose a theme preview</small></button></div></div>
-<div class="notice"><b>ⓘ</b><p><strong>Frontend prototype only.</strong> Changes are saved in this browser using localStorage. This is not a secure multi-user admin system and does not publish changes to other visitors. Add server-side authentication, authorization, and a database before production.</p></div>
+<div class="notice"><b>ⓘ</b><p><strong>Frontend prototype only.</strong> Google sign-in gates this page in the browser, but that check can be bypassed. Changes are saved in this browser using localStorage and are not published to other visitors. Add server-side authentication, authorization, and a database before production.</p></div>
 </section>
 <section class="view" id="view-homepage"><div class="intro"><span class="eyebrow">PUBLIC SITE / CONTENT</span><h2>Homepage content</h2><p>Update your introduction. The headline accepts simple HTML such as <code>&lt;br&gt;</code> for line breaks.</p></div>
 <form class="panel editor" id="homepage-form"><label for="hero-title">Hero headline</label><textarea id="hero-title" rows="3" required></textarea><label for="hero-lead">Introduction</label><textarea id="hero-lead" rows="4" required></textarea><div class="form-actions"><button type="button" class="button secondary" id="reset-homepage">Reset defaults</button><button class="button primary" type="submit">Save changes ↗</button></div><p class="status" id="homepage-status" role="status"></p></form></section>

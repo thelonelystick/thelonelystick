@@ -2,6 +2,8 @@
 "use strict";
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const KEY="bhawishya-site-content", LINKS="bhawishya-social-links";
+const SUPABASE_URL="https://lltnosossejymzvddeee.supabase.co", SUPABASE_PUBLISHABLE_KEY="sb_publishable__mdO3XEbIwSJDnGXyqSlFg_g7TxWpSF";
+const ADMIN_EMAIL="sooryavanshibhawishya@gmail.com", ADMIN_REDIRECT_URL="https://thelonelystick.vercel.app/admin";
 const defaults={heroTitle:'Building my skills.<br>Bringing ideas <span class="gold-text">to life.</span>',heroLead:"I'm Bhawishya, a student developer exploring web technologies, AI-powered tools, and digital products. I learn by building — one idea, one experiment, and one project at a time.",projects:[
 {title:"AstroGPT",description:"An educational Jyotisha-inspired web experience combining traditional interpretations with a modern interface and calculation-focused exploration."},
 {title:"SCARLET",description:"A personal assistant concept for voice and text conversations, task management, routines, and monthly budgeting."},
@@ -29,4 +31,47 @@ function renderLinks(){$("#links-list").innerHTML=links.map((l,i)=>`<div class="
 $("#add-link").addEventListener("click",()=>{links.push({label:"",url:"",type:"Other"});renderLinks()});
 $("#links-form").addEventListener("submit",e=>{e.preventDefault();const rows=$$(".link-row");const next=rows.map((r,i)=>({label:$(`[data-label="${i}"]`).value.trim(),url:$(`[data-url="${i}"]`).value.trim(),type:$(`[data-type="${i}"]`).value})).filter(l=>l.label);if(next.some(l=>l.url&&!/^https?:\/\//i.test(l.url))){$("#links-status").textContent="Use a full https:// or http:// URL.";return}links=next;save(LINKS,links);$("#links-status").textContent="Links saved locally. Public display still needs to be connected.";toast("Social links saved locally")});
 renderHome();renderProjects();renderLinks();
+const authGate=$("#auth-gate"),adminShell=$("#admin-shell"),authStatus=$("#auth-status"),signInButton=$("#google-sign-in");
+let authClient;
+function showSignIn(message=""){adminShell.hidden=true;authGate.hidden=false;authStatus.textContent=message}
+function showAdmin(email){authGate.hidden=true;adminShell.hidden=false;$(".owner small").textContent=email}
+async function authorize(session){
+const email=session?.user?.email?.trim().toLowerCase();
+if(email===ADMIN_EMAIL){showAdmin(email);return}
+showSignIn(session?.user?"This Google account is not authorized for this admin page.":"");
+if(session?.user){
+const {error}=await authClient.auth.signOut();
+if(error)showSignIn(`This account is not authorized. Could not clear its session: ${error.message}`);
+else showSignIn("This Google account is not authorized for this admin page.");
+}
+}
+async function initializeAuth(){
+if(!window.supabase?.createClient){showSignIn("Could not load Supabase. Check your connection and reload.");signInButton.disabled=true;return}
+authClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+let checkingInitialSession=true;
+signInButton.addEventListener("click",async()=>{
+signInButton.disabled=true;authStatus.textContent="Redirecting to Google…";
+try{
+const {error}=await authClient.auth.signInWithOAuth({provider:"google",options:{redirectTo:ADMIN_REDIRECT_URL}});
+if(error){authStatus.textContent=`Google sign-in failed: ${error.message}`;signInButton.disabled=false}
+}catch(error){authStatus.textContent=`Google sign-in failed: ${error.message}`;signInButton.disabled=false}
+});
+$("#sign-out").addEventListener("click",async()=>{
+try{
+const {error}=await authClient.auth.signOut();
+if(error){showSignIn(`Sign-out failed: ${error.message}`);return}
+showSignIn("Signed out.");
+}catch(error){showSignIn(`Sign-out failed: ${error.message}`)}
+});
+authClient.auth.onAuthStateChange((event,session)=>{
+if(event==="SIGNED_OUT"){showSignIn("Signed out.");return}
+if(checkingInitialSession)return;
+setTimeout(()=>{void authorize(session).catch(error=>showSignIn(`Could not verify your session: ${error.message}`))},0);
+});
+const {data,error}=await authClient.auth.getSession();
+if(error){showSignIn(`Could not check your session: ${error.message}`);return}
+checkingInitialSession=false;
+await authorize(data.session);
+}
+void initializeAuth().catch(error=>showSignIn(`Could not initialize sign-in: ${error.message}`));
 })();
