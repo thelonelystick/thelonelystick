@@ -19,19 +19,104 @@
     ["sport", "Sport", "Sports, fitness, training, activities, and personal progress.", "trophy", 67, 84, 68],
     ["cyber", "Cyber", "Cybersecurity, ethical hacking, digital safety, and security research.", "shield-check", 51, 59, 64]
   ];
-  const makeDefaultWeb = () => ({
-    enabled: true,
-    sectionTitle: "Welcome to my web",
-    sectionSubtitle: "Eight worlds. One mind. Explore what I create.",
-    defaultExpanded: false,
-    domains: DOMAIN_SEEDS.map(([id, title, description, icon, x, y, threadLength], index) => ({
-      id, slug: id, title, description, icon, published: true, displayOrder: index + 1,
-      themePresetId: id, position: {x, y}, threadLength, pagePath: `/domains/${id}`,
-      featuredProjectIds: [], socialLinkIds: [], connections: [], createdAt: null, updatedAt: null
-    })),
-    connections: [],
-    themePresets: []
+  const makeDefaultThemePresets = () => [
+    {id: "solar", name: "Solar", backgroundColor: "#242424", surfaceColor: "#2d2d2d", textColor: "#e8c76d", mutedColor: "#c0b17e", accentColor: "#e4c15f", borderColor: "#6e6040", headingFont: "Manrope", bodyFont: "DM Sans", backgroundMotif: "grain", cardAppearance: "solid", transitionStyle: "silk", hoverBehavior: "lift", audioTrack: ""},
+    {id: "lunar", name: "Lunar", backgroundColor: "#f0eafa", surfaceColor: "#faf7ff", textColor: "#39275b", mutedColor: "#665580", accentColor: "#6b45a6", borderColor: "#9677bd", headingFont: "Manrope", bodyFont: "DM Sans", backgroundMotif: "none", cardAppearance: "glass", transitionStyle: "fade", hoverBehavior: "glow", audioTrack: ""}
+  ];
+  const makeDefaultWeb = (published = true) => {
+    const now = new Date().toISOString();
+    return {
+      enabled: true,
+      sectionTitle: "Welcome to my web",
+      sectionSubtitle: "Eight worlds. One mind. Explore what I create.",
+      domains: DOMAIN_SEEDS.map(([id, title, description, icon, x, y, threadLength], index) => ({
+        id, slug: id, title, description, icon, published, hidden: false, displayOrder: index + 1,
+        themePresetId: "solar", position: {x, y}, threadLength, pagePath: `/domains/${id}`,
+        pageContent: "", url: "", featuredProjectIds: [], socialLinkIds: [], articles: [], media: [], createdAt: now, updatedAt: now
+      })),
+      connections: [],
+      themePresets: makeDefaultThemePresets()
+    };
+  };
+  const normalizeConnection = connection => ({
+    ...connection,
+    from: String(connection?.from || ""),
+    to: String(connection?.to || ""),
+    curvature: Number.isFinite(Number(connection?.curvature)) ? Number(connection.curvature) : 0,
+    opacity: Number.isFinite(Number(connection?.opacity)) ? Number(connection.opacity) : 0.28,
+    width: Number.isFinite(Number(connection?.width)) ? Number(connection.width) : 1,
+    visible: connection?.visible !== false,
+    animated: connection?.animated === true
   });
+  function normalizeWeb(savedWeb) {
+    if (!savedWeb || typeof savedWeb !== "object") return makeDefaultWeb(true);
+    const now = new Date().toISOString();
+    const savedDomains = Array.isArray(savedWeb.domains) ? savedWeb.domains : [];
+    const domains = savedDomains.map((savedDomain, index) => {
+      const domain = savedDomain && typeof savedDomain === "object" ? savedDomain : {};
+      const slug = typeof domain.slug === "string" ? domain.slug : slugify(domain.title) || `domain-${index + 1}`;
+      const coordinate = value => value !== null && value !== "" && Number.isFinite(Number(value)) ? Number(value) : 50;
+      return {
+        ...domain,
+        id: typeof domain.id === "string" ? domain.id : `domain-${slugify(slug || domain.title) || index + 1}`,
+        slug,
+        title: typeof domain.title === "string" ? domain.title : "Untitled domain",
+        description: typeof domain.description === "string" ? domain.description : "",
+        icon: typeof domain.icon === "string" ? domain.icon : "code",
+        published: domain.published !== false,
+        hidden: domain.hidden === true,
+        displayOrder: domain.displayOrder !== null && domain.displayOrder !== "" && Number.isInteger(Number(domain.displayOrder)) ? Number(domain.displayOrder) : index + 1,
+        themePresetId: typeof domain.themePresetId === "string" ? domain.themePresetId : "solar",
+        position: {x: coordinate(domain.position?.x), y: coordinate(domain.position?.y)},
+        threadLength: domain.threadLength !== null && domain.threadLength !== "" && Number.isFinite(Number(domain.threadLength)) ? Number(domain.threadLength) : 65,
+        pagePath: typeof domain.pagePath === "string" ? domain.pagePath : `/domains/${slug}`,
+        pageContent: typeof domain.pageContent === "string" ? domain.pageContent : "",
+        url: typeof domain.url === "string" ? domain.url : "",
+        featuredProjectIds: Array.isArray(domain.featuredProjectIds) ? domain.featuredProjectIds : [],
+        socialLinkIds: Array.isArray(domain.socialLinkIds) ? domain.socialLinkIds : [],
+        articles: Array.isArray(domain.articles) ? domain.articles : [],
+        media: Array.isArray(domain.media) ? domain.media : [],
+        createdAt: domain.createdAt || now,
+        updatedAt: domain.updatedAt || now
+      };
+    });
+    const byId = new Set(domains.map(domain => domain.id));
+    const legacy = [];
+    savedDomains.forEach((savedDomain, index) => {
+      const domain = savedDomain && typeof savedDomain === "object" ? savedDomain : {};
+      (Array.isArray(domain.connections) ? domain.connections : []).forEach(otherId => {
+        legacy.push({from: domains[index].id, to: typeof otherId === "string" ? otherId : otherId?.to});
+      });
+    });
+    const allConnections = [
+      ...(Array.isArray(savedWeb.connections) ? savedWeb.connections : []),
+      ...legacy
+    ].map(normalizeConnection);
+    const seen = new Set();
+    const connections = allConnections.filter(edge => {
+      if (!edge.from || !edge.to || edge.from === edge.to || !byId.has(edge.from) || !byId.has(edge.to)) return false;
+      const key = [edge.from, edge.to].sort().join("\u0000");
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    const themePresets = Array.isArray(savedWeb.themePresets) && savedWeb.themePresets.some(preset => preset && typeof preset === "object")
+      ? savedWeb.themePresets.filter(preset => preset && typeof preset === "object")
+      : makeDefaultThemePresets();
+    const presetIds = new Set(themePresets.map(preset => preset.id));
+    return {
+      ...savedWeb,
+      enabled: savedWeb.enabled !== false,
+      sectionTitle: typeof savedWeb.sectionTitle === "string" ? savedWeb.sectionTitle : "Welcome to my web",
+      sectionSubtitle: typeof savedWeb.sectionSubtitle === "string" ? savedWeb.sectionSubtitle : "",
+      domains: domains.map(domain => {
+        const {connections: legacyConnections, ...cleanDomain} = domain;
+        return {...cleanDomain, themePresetId: presetIds.has(domain.themePresetId) ? domain.themePresetId : themePresets[0]?.id || ""};
+      }),
+      connections,
+      themePresets
+    };
+  }
   let content = {
     siteCopy: {},
     heroImage: "",
@@ -45,6 +130,9 @@
   let authClient;
   let contentLoaded = false;
   let loadingContent;
+  let hasSavedWebRecord = false;
+  let webDraftConnections = [];
+  let themePresetDrafts = [];
 
   const esc = value => String(value ?? "").replace(/[&<>"']/g, character =>
     ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[character]));
@@ -104,6 +192,7 @@
         throw new Error("Published portfolio content is missing. Run the Supabase portfolio migrations before editing.");
       }
       const saved = data?.content && typeof data.content === "object" ? data.content : {};
+      hasSavedWebRecord = !!saved.web && typeof saved.web === "object";
       if (!saved.siteCopy || typeof saved.siteCopy !== "object" ||
           !("heroTitle" in saved.siteCopy) || !("heroLead" in saved.siteCopy)) {
         throw new Error("Database page copy is missing. Run 20261108022000_portfolio_site_copy.sql, then reload this page.");
@@ -120,8 +209,10 @@
         projects: (Array.isArray(saved.projects) ? saved.projects : []).map((project, index) => ({
           ...project, id: project.id || `project-${slugify(project.title) || index + 1}`
         })),
-        web: saved.web && typeof saved.web === "object" ? saved.web : makeDefaultWeb()
+        web: normalizeWeb(saved.web)
       };
+      webDraftConnections = structuredClone(content.web.connections);
+      themePresetDrafts = structuredClone(content.web.themePresets);
       links = content.links;
       contentLoaded = true;
       renderHome();
@@ -130,6 +221,9 @@
       renderLinks();
       renderProfilePhotos();
       renderDomains();
+      if (!hasSavedWebRecord) {
+        setStatus("#domain-publish-status", "No published web configuration exists; the initial eight domains are staged as a draft. Publish domains to make them live.");
+      }
       $("#owner-email").textContent = ADMIN_EMAIL;
       setStatus("#content-backend-status", "Connected · Published content");
       return content;
@@ -141,14 +235,17 @@
       throw error;
     }
   }
-  async function publishContent() {
+  async function publishContent(includeWebDraft = false) {
     if (!contentLoaded) throw new Error("Published content is not loaded. Check the Supabase connection and retry.");
+    const savedContent = {...content};
+    if (!hasSavedWebRecord && !includeWebDraft) delete savedContent.web;
     const {error} = await authClient.from("portfolio_content").upsert({
       id: "published",
-      content,
+      content: savedContent,
       updated_at: new Date().toISOString()
     }, {onConflict: "id"});
     if (error) throw new Error(`Could not publish content: ${error.message}`);
+    if (includeWebDraft) hasSavedWebRecord = true;
     setStatus("#content-backend-status", "Connected · Changes published");
   }
   async function uploadImage(file, folder) {
@@ -353,13 +450,15 @@
   const projectReferenceId = (project, index) => project.id || `project-${slugify(project.title) || index + 1}`;
   const socialReferenceId = (link, index) => link.id || `social-${slugify(link.label) || index + 1}`;
   const selectedValues = select => [...select.selectedOptions].map(option => option.value);
-  function renderDomains(domains = content.web.domains || []) {
-    $("#web-enabled").checked = content.web.enabled !== false;
-    $("#web-section-title").value = content.web.sectionTitle || "";
-    $("#web-section-subtitle").value = content.web.sectionSubtitle || "";
+  function renderDomains(domains) {
+    if (!domains) {
+      $("#web-enabled").checked = content.web.enabled !== false;
+      $("#web-section-title").value = content.web.sectionTitle || "";
+      $("#web-section-subtitle").value = content.web.sectionSubtitle || "";
+      domains = content.web.domains || [];
+    }
     $("#domain-editor-list").innerHTML = domains.map((domain, index) => {
       const position = domain.position || {x: 50, y: 50};
-      const connections = Array.isArray(domain.connections) ? domain.connections : [];
       const featuredProjectIds = Array.isArray(domain.featuredProjectIds) ? domain.featuredProjectIds : [];
       const socialLinkIds = Array.isArray(domain.socialLinkIds) ? domain.socialLinkIds : [];
       const projectOptions = content.projects.map((project, projectIndex) => {
@@ -370,10 +469,8 @@
         const id = socialReferenceId(link, linkIndex);
         return `<option value="${esc(id)}" ${socialLinkIds.includes(id) ? "selected" : ""}>${esc(link.label)}</option>`;
       }).join("");
-      const connectionOptions = domains.filter(item => item.id !== domain.id)
-        .map(item => `<option value="${esc(item.id)}" ${connections.includes(item.id) ? "selected" : ""}>${esc(item.title)}</option>`).join("");
-      const themeOptions = ["tech", "art", "poet", "music", "vlog", "edu", "sport", "cyber"].map(theme =>
-        `<option value="${theme}" ${domain.themePresetId === theme ? "selected" : ""}>${theme}</option>`).join("");
+      const themeOptions = themePresetDrafts.map(preset =>
+        `<option value="${esc(preset.id)}" ${domain.themePresetId === preset.id ? "selected" : ""}>${esc(preset.name)}</option>`).join("");
       return `<article class="domain-edit" data-domain-id="${esc(domain.id)}">
         <header class="domain-edit-head"><div><span class="eyebrow">DOMAIN ${String(index + 1).padStart(2, "0")} / ${esc(domain.id)}</span><strong>${esc(domain.title || "Untitled domain")}</strong></div><div class="card-order">
           <button type="button" class="order-card" data-domain-move="-1" aria-label="Move ${esc(domain.title)} up" ${index === 0 ? "disabled" : ""}>↑</button>
@@ -382,7 +479,7 @@
           <button type="button" class="remove-card" data-domain-remove>Remove</button>
         </div></header>
         <div class="domain-fields">
-          <label>Stable ID<input data-domain-id-value value="${esc(domain.id)}" required></label>
+          <label>Stable ID<input data-domain-id-value value="${esc(domain.id)}" readonly aria-readonly="true"></label>
           <label>URL slug<input data-domain-slug value="${esc(domain.slug)}" required></label>
           <label>Title<input data-domain-title value="${esc(domain.title)}" maxlength="50" required></label>
           <label>Icon<input data-domain-icon value="${esc(domain.icon || "code")}" maxlength="30" required></label>
@@ -390,7 +487,7 @@
           <label class="domain-field-wide">Domain page content<textarea data-domain-page-content rows="4" maxlength="3000" placeholder="Optional additional text for this domain page.">${esc(domain.pageContent || "")}</textarea></label>
           <label class="domain-field-wide">Dedicated page path<input data-domain-path value="${esc(domain.pagePath || `/domains/${domain.slug}`)}" required></label>
           <label>External URL<input data-domain-url type="url" value="${esc(domain.url || "")}" placeholder="https://example.com"></label>
-          <label>Visual theme<select data-domain-theme>${themeOptions}</select></label>
+          <label>Theme preset<select data-domain-theme>${themeOptions}</select></label>
           <label>Display order<input data-domain-order type="number" min="1" step="1" value="${Number(domain.displayOrder) || index + 1}" required></label>
           <label>Position X (0-100)<input data-domain-x type="number" min="0" max="100" step="1" value="${Number(position.x)}" required></label>
           <label>Position Y (0-100)<input data-domain-y type="number" min="0" max="100" step="1" value="${Number(position.y)}" required></label>
@@ -399,11 +496,13 @@
           <label class="visibility-control"><input data-domain-hidden type="checkbox" ${domain.hidden === true ? "checked" : ""}> Hide from public web</label>
           <label>Featured projects<select data-domain-projects multiple size="4">${projectOptions}</select></label>
           <label>Social links<select data-domain-social multiple size="4">${socialOptions}</select></label>
-          <label class="domain-field-wide">Connect strands to<select data-domain-connections multiple size="4">${connectionOptions}</select><small>Choose other domains to draw silk connections between them.</small></label>
         </div>
         <div class="domain-previews"><span>Preview this domain</span><div><article data-preview-theme="dark"><b>Solar</b><strong>${esc(domain.title)}</strong><small>${esc(domain.description)}</small></article><article data-preview-theme="light"><b>Lunar</b><strong>${esc(domain.title)}</strong><small>${esc(domain.description)}</small></article></div></div>
       </article>`;
     }).join("");
+    renderConnectionEditor(domains);
+    renderThemePresets();
+    updateDomainPreview(domains);
   }
   function readDomainDrafts() {
     return $$(".domain-edit").map(row => {
@@ -425,17 +524,215 @@
         published: $("[data-domain-published]", row).checked,
         hidden: $("[data-domain-hidden]", row).checked,
         featuredProjectIds: choose("[data-domain-projects]"),
-        socialLinkIds: choose("[data-domain-social]"),
-        connections: choose("[data-domain-connections]")
+        socialLinkIds: choose("[data-domain-social]")
       };
     });
   }
-  function validateDomainDrafts(domains) {
+  let selectedDomainId = "";
+  function renderConnectionEditor(domains = readDomainDrafts()) {
+    const options = domains.map(domain => `<option value="${esc(domain.id)}">${esc(domain.title || domain.id)}</option>`).join("");
+    $("#connection-from").innerHTML = options;
+    $("#connection-to").innerHTML = options;
+    $("#connection-editor-list").innerHTML = webDraftConnections.map((edge, index) => {
+      const from = domains.find(domain => domain.id === edge.from)?.title || edge.from;
+      const to = domains.find(domain => domain.id === edge.to)?.title || edge.to;
+      return `<article class="connection-edit" data-edge-index="${index}">
+        <strong>${esc(from)} ↔ ${esc(to)}</strong>
+        <label>Curvature<input data-edge-field="curvature" type="number" min="-180" max="180" step="1" value="${Number(edge.curvature) || 0}"></label>
+        <label>Opacity<input data-edge-field="opacity" type="number" min="0" max="1" step="0.05" value="${Number(edge.opacity ?? 0.28)}"></label>
+        <label>Width<input data-edge-field="width" type="number" min="0.4" max="4" step="0.1" value="${Number(edge.width) || 1}"></label>
+        <label class="visibility-control"><input data-edge-field="visible" type="checkbox" ${edge.visible === false ? "" : "checked"}> Visible</label>
+        <label class="visibility-control"><input data-edge-field="animated" type="checkbox" ${edge.animated === true ? "checked" : ""}> Animate</label>
+        <button type="button" class="remove-card" data-edge-remove>Remove strand</button>
+      </article>`;
+    }).join("");
+  }
+  function renderThemePresets() {
+    const fonts = ["Manrope", "DM Sans", "Georgia", "Arial", "system-ui"];
+    $("#theme-preset-editor").innerHTML = themePresetDrafts.map((preset, index) =>
+      `<article class="theme-preset-edit" data-preset-index="${index}">
+        <header><strong>${esc(preset.name || "Untitled preset")}</strong><button type="button" class="remove-card" data-preset-remove>Remove preset</button></header>
+        <div class="preset-fields">
+          <label>Preset ID<input data-preset-field="id" value="${esc(preset.id)}" readonly></label>
+          <label>Name<input data-preset-field="name" maxlength="50" value="${esc(preset.name || "")}" required></label>
+          ${[["backgroundColor","Background"],["surfaceColor","Surface"],["textColor","Main text"],["mutedColor","Muted text"],["accentColor","Accent"],["borderColor","Border"]].map(([key,label]) =>
+            `<label>${label}<input data-preset-field="${key}" type="color" value="${esc(preset[key] || "#777777")}"></label>`).join("")}
+          <label>Heading font<select data-preset-field="headingFont">${fonts.map(font => `<option ${preset.headingFont === font ? "selected" : ""}>${font}</option>`).join("")}</select></label>
+          <label>Body font<select data-preset-field="bodyFont">${fonts.map(font => `<option ${preset.bodyFont === font ? "selected" : ""}>${font}</option>`).join("")}</select></label>
+          <label>Background motif<select data-preset-field="backgroundMotif">${["none","grain","grid","dots"].map(value => `<option ${preset.backgroundMotif === value ? "selected" : ""}>${value}</option>`).join("")}</select></label>
+          <label>Card appearance<select data-preset-field="cardAppearance">${["solid","glass","outline"].map(value => `<option ${preset.cardAppearance === value ? "selected" : ""}>${value}</option>`).join("")}</select></label>
+          <label>Transition style<select data-preset-field="transitionStyle">${["silk","fade","none"].map(value => `<option ${preset.transitionStyle === value ? "selected" : ""}>${value}</option>`).join("")}</select></label>
+          <label>Hover behavior<select data-preset-field="hoverBehavior">${["lift","glow","none"].map(value => `<option ${preset.hoverBehavior === value ? "selected" : ""}>${value}</option>`).join("")}</select></label>
+          <label class="domain-field-wide">Optional approved audio URL<input data-preset-field="audioTrack" type="url" value="${esc(preset.audioTrack || "")}" placeholder="https://example.com/approved-track.mp3"></label>
+        </div>
+      </article>`
+    ).join("");
+  }
+  function updateDomainPreview(domains = readDomainDrafts()) {
+    const stage = $("#domain-preview-theme");
+    const canvas = $("#admin-organic-web-canvas");
+    const previewDomains = domains.map(domain => ({...domain, published: true}));
+    WebRenderer.render({
+      canvas,
+      svg: $("#admin-organic-web-threads"),
+      cards: $("#admin-organic-web-domains"),
+      list: $("#admin-domain-preview-list"),
+      accessibleListId: "admin-domain-preview-list",
+      web: {...content.web, connections: webDraftConnections, themePresets: themePresetDrafts},
+      domains: previewDomains,
+      includeUnpublished: true,
+      pathForDomain: () => "#"
+    });
+    $$(".organic-domain-card", canvas).forEach(card => {
+      card.classList.toggle("is-selected", card.dataset.domainId === selectedDomainId);
+      card.setAttribute("aria-label", `${$("strong", card)?.textContent || "Domain"} draft preview; select to edit`);
+    });
+    stage.dataset.theme = stage.dataset.theme || "dark";
+  }
+  $("#domain-preview-theme").addEventListener("click", event => {
+    const card = event.target.closest(".organic-domain-card");
+    if (!card) return;
+    event.preventDefault();
+    selectedDomainId = card.dataset.domainId;
+    $$(".domain-edit").forEach(row => row.classList.toggle("is-selected", row.dataset.domainId === selectedDomainId));
+    updateDomainPreview();
+    const selected = $(`.domain-edit[data-domain-id="${CSS.escape(selectedDomainId)}"]`);
+    selected?.scrollIntoView({behavior: "smooth", block: "nearest"});
+  });
+  let draggedDomain = null;
+  const previewCanvas = $("#admin-organic-web-canvas");
+  previewCanvas.addEventListener("pointerdown", event => {
+    const card = event.target.closest(".organic-domain-card");
+    if (!card) return;
+    event.preventDefault();
+    selectedDomainId = card.dataset.domainId;
+    const row = $(`.domain-edit[data-domain-id="${CSS.escape(selectedDomainId)}"]`);
+    if (!row) return;
+    draggedDomain = {
+      id: selectedDomainId,
+      startX: event.clientX,
+      startY: event.clientY,
+      x: Number($("[data-domain-x]", row).value),
+      y: Number($("[data-domain-y]", row).value)
+    };
+    previewCanvas.setPointerCapture(event.pointerId);
+  });
+  previewCanvas.addEventListener("pointermove", event => {
+    if (!draggedDomain) return;
+    const row = $(`.domain-edit[data-domain-id="${CSS.escape(draggedDomain.id)}"]`);
+    if (!row) return;
+    const bounds = previewCanvas.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, draggedDomain.x + (event.clientX - draggedDomain.startX) / bounds.width * 100));
+    const y = Math.max(0, Math.min(100, draggedDomain.y + (event.clientY - draggedDomain.startY) / bounds.height * 100));
+    $("[data-domain-x]", row).value = String(Math.round(x));
+    $("[data-domain-y]", row).value = String(Math.round(y));
+    updateDomainPreview();
+  });
+  ["pointerup", "pointercancel"].forEach(name => previewCanvas.addEventListener(name, () => { draggedDomain = null; }));
+  $$("[data-preview-layout]").forEach(button => button.addEventListener("click", () => {
+    const stage = $("#domain-preview-theme");
+    stage.classList.toggle("is-mobile-preview", button.dataset.previewLayout === "mobile");
+    $$("[data-preview-layout]").forEach(item => item.classList.toggle("selected", item === button));
+    updateDomainPreview();
+  }));
+  $$("[data-preview-theme]").forEach(button => button.addEventListener("click", () => {
+    $("#domain-preview-theme").dataset.theme = button.dataset.previewTheme;
+    $$("[data-preview-theme]").forEach(item => item.classList.toggle("selected", item === button));
+  }));
+  $("#add-connection").addEventListener("click", () => {
+    const from = $("#connection-from").value;
+    const to = $("#connection-to").value;
+    if (!from || !to || from === to) {
+      setStatus("#domain-preview-status", "Choose two different domains for a strand.", true);
+      return;
+    }
+    if (webDraftConnections.some(edge => [edge.from, edge.to].sort().join(":") === [from, to].sort().join(":"))) {
+      setStatus("#domain-preview-status", "That strand already exists.", true);
+      return;
+    }
+    webDraftConnections.push({from, to, curvature: 0, opacity: 0.28, width: 1, visible: true, animated: false});
+    renderConnectionEditor();
+    updateDomainPreview();
+    setStatus("#domain-preview-status", "Connection added to draft. Publish to make it public.");
+  });
+  $("#connection-editor-list").addEventListener("input", event => {
+    const field = event.target.closest("[data-edge-field]");
+    const row = event.target.closest("[data-edge-index]");
+    if (!field || !row) return;
+    const edge = webDraftConnections[Number(row.dataset.edgeIndex)];
+    edge[field.dataset.edgeField] = field.type === "checkbox" ? field.checked : Number(field.value);
+    updateDomainPreview();
+  });
+  $("#connection-editor-list").addEventListener("click", event => {
+    const row = event.target.closest("[data-edge-index]");
+    if (!row || !event.target.closest("[data-edge-remove]")) return;
+    webDraftConnections.splice(Number(row.dataset.edgeIndex), 1);
+    renderConnectionEditor();
+    updateDomainPreview();
+  });
+  $("#theme-preset-editor").addEventListener("input", event => {
+    const field = event.target.closest("[data-preset-field]");
+    const row = event.target.closest("[data-preset-index]");
+    if (!field || !row) return;
+    themePresetDrafts[Number(row.dataset.presetIndex)][field.dataset.presetField] = field.value;
+    const heading = $("header strong", row);
+    if (field.dataset.presetField === "name" && heading) heading.textContent = field.value;
+    updateDomainPreview();
+  });
+  $("#theme-preset-editor").addEventListener("change", event => {
+    const field = event.target.closest("[data-preset-field]");
+    const row = event.target.closest("[data-preset-index]");
+    if (!field || !row) return;
+    themePresetDrafts[Number(row.dataset.presetIndex)][field.dataset.presetField] = field.value;
+    updateDomainPreview();
+  });
+  $("#theme-preset-editor").addEventListener("click", event => {
+    const row = event.target.closest("[data-preset-index]");
+    if (!row || !event.target.closest("[data-preset-remove]")) return;
+    if (themePresetDrafts.length <= 1) {
+      setStatus("#domain-publish-status", "Keep at least one theme preset.", true);
+      return;
+    }
+    const removed = themePresetDrafts.splice(Number(row.dataset.presetIndex), 1)[0];
+    const fallback = themePresetDrafts[0].id;
+    const domains = readDomainDrafts().map(domain => ({
+      ...domain, themePresetId: domain.themePresetId === removed.id ? fallback : domain.themePresetId
+    }));
+    renderDomains(domains);
+    setStatus("#domain-publish-status", "Preset removed from draft; affected domains use the first remaining preset.");
+  });
+  $("#add-theme-preset").addEventListener("click", () => {
+    const base = themePresetDrafts[0] || makeDefaultThemePresets()[0];
+    themePresetDrafts.push({...base, id: `preset-${crypto.randomUUID()}`, name: "New preset"});
+    renderThemePresets();
+    const domains = readDomainDrafts();
+    renderDomains(domains);
+    setStatus("#domain-publish-status", "Theme preset draft added. Publish to save it.");
+  });
+  function validateDomainDrafts(domains, connections = webDraftConnections, presets = themePresetDrafts) {
     if (!domains.length) throw new Error("Keep at least one domain, or disable the organic web before publishing.");
     const ids = domains.map(domain => domain.id);
     const slugs = domains.map(domain => domain.slug);
     if (new Set(ids).size !== ids.length) throw new Error("Domain IDs must be unique.");
     if (new Set(slugs).size !== slugs.length) throw new Error("Domain slugs must be unique.");
+    if (new Set(domains.map(domain => domain.displayOrder)).size !== domains.length) throw new Error("Every domain needs a unique display order.");
+    const presetIds = presets.map(preset => preset.id);
+    if (!presets.length || new Set(presetIds).size !== presetIds.length) throw new Error("Theme presets need unique IDs, and at least one preset must remain.");
+    const validFonts = new Set(["Manrope", "DM Sans", "Georgia", "Arial", "system-ui"]);
+    for (const preset of presets) {
+      if (!/^[a-z0-9][a-z0-9-]{0,59}$/.test(preset.id) || !preset.name?.trim()) throw new Error("Every theme preset needs a valid ID and name.");
+      for (const key of ["backgroundColor", "surfaceColor", "textColor", "mutedColor", "accentColor", "borderColor"]) {
+        if (!/^#[0-9a-f]{6}$/i.test(preset[key] || "")) throw new Error(`${preset.name} needs a valid ${key.replace("Color", " color")}.`);
+      }
+      if (!validFonts.has(preset.headingFont) || !validFonts.has(preset.bodyFont)) throw new Error(`${preset.name} uses an unsupported font selection.`);
+      if (!["none", "grain", "grid", "dots"].includes(preset.backgroundMotif) ||
+          !["solid", "glass", "outline"].includes(preset.cardAppearance) ||
+          !["silk", "fade", "none"].includes(preset.transitionStyle) ||
+          !["lift", "glow", "none"].includes(preset.hoverBehavior)) {
+        throw new Error(`${preset.name} has an unsupported visual setting.`);
+      }
+      if (preset.audioTrack && !isWebUrl(preset.audioTrack)) throw new Error(`${preset.name} audio track must use a valid http(s) URL.`);
+    }
     const projectIds = new Set(content.projects.map(projectReferenceId));
     const socialIds = new Set(content.links.map(socialReferenceId));
     const domainIds = new Set(ids);
@@ -443,8 +740,9 @@
       if (!/^[a-z0-9][a-z0-9-]{0,59}$/.test(domain.id)) throw new Error(`Invalid stable ID: ${domain.id}`);
       if (!/^[a-z0-9][a-z0-9-]{0,59}$/.test(domain.slug)) throw new Error(`Invalid URL slug: ${domain.slug}`);
       if (!domain.title || !domain.description || !domain.icon || !domain.themePresetId) {
-        throw new Error(`Domain ${domain.slug} needs a title, description, icon, and visual theme.`);
+        throw new Error(`Domain ${domain.slug} needs a title, description, icon, and theme preset.`);
       }
+      if (!presetIds.includes(domain.themePresetId)) throw new Error(`Theme preset for ${domain.title} is invalid.`);
       if (!Number.isInteger(domain.displayOrder) || domain.displayOrder < 1) throw new Error(`Invalid display order for ${domain.title}.`);
       if (!Number.isFinite(domain.position.x) || domain.position.x < 0 || domain.position.x > 100 ||
           !Number.isFinite(domain.position.y) || domain.position.y < 0 || domain.position.y > 100) {
@@ -457,41 +755,46 @@
       if (domain.url && !isWebUrl(domain.url)) throw new Error(`External URL for ${domain.title} must use http(s).`);
       if (domain.featuredProjectIds.some(id => !projectIds.has(id))) throw new Error(`A featured project reference in ${domain.title} is invalid.`);
       if (domain.socialLinkIds.some(id => !socialIds.has(id))) throw new Error(`A social link reference in ${domain.title} is invalid.`);
-      if (domain.connections.some(id => !domainIds.has(id) || id === domain.id)) throw new Error(`A strand connection in ${domain.title} references an invalid domain.`);
+    }
+    const seenConnections = new Set();
+    for (const edge of connections) {
+      if (!domainIds.has(edge.from) || !domainIds.has(edge.to) || edge.from === edge.to) throw new Error("A strand connection references an invalid or identical domain.");
+      const key = [edge.from, edge.to].sort().join("\u0000");
+      if (seenConnections.has(key)) throw new Error("Strand connections must not be duplicated.");
+      seenConnections.add(key);
+      if (!Number.isFinite(edge.curvature) || edge.curvature < -180 || edge.curvature > 180 ||
+          !Number.isFinite(edge.opacity) || edge.opacity < 0 || edge.opacity > 1 ||
+          !Number.isFinite(edge.width) || edge.width < 0.4 || edge.width > 4 ||
+          typeof edge.visible !== "boolean" || typeof edge.animated !== "boolean") {
+        throw new Error("Strand curvature, opacity, width, and visibility settings are invalid.");
+      }
     }
   }
   async function publishDomainDrafts(domains, message = "Domain configuration published.") {
     const previous = content.web;
     try {
-      validateDomainDrafts(domains);
+      validateDomainDrafts(domains, webDraftConnections, themePresetDrafts);
       if (!$("#web-section-title").value.trim()) throw new Error("The organic web needs a section title.");
       const now = new Date().toISOString();
-      const savedDomains = domains.map((domain, index) => ({
+      const savedDomains = [...domains].sort((a, b) => a.displayOrder - b.displayOrder).map((domain, index) => ({
         ...domain,
         displayOrder: index + 1,
         pagePath: `/domains/${domain.slug}`,
         createdAt: domain.createdAt || now,
         updatedAt: now
       }));
-      const connections = [];
-      const seen = new Set();
-      savedDomains.forEach(domain => domain.connections.forEach(otherId => {
-        const [from, to] = [domain.id, otherId].sort();
-        const key = `${from}:${to}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          connections.push({from, to});
-        }
-      }));
+      const connections = webDraftConnections.map(connection => ({...connection}));
       content.web = {
         ...previous,
         enabled: $("#web-enabled").checked,
         sectionTitle: $("#web-section-title").value.trim(),
         sectionSubtitle: $("#web-section-subtitle").value.trim(),
         domains: savedDomains,
-        connections
+        connections,
+        themePresets: structuredClone(themePresetDrafts)
       };
-      await publishContent();
+      await publishContent(true);
+      webDraftConnections = structuredClone(connections);
       renderDomains();
       setStatus("#domain-publish-status", message);
       toast("Web domains published");
@@ -508,6 +811,16 @@
   $("#publish-domains").addEventListener("click", () => {
     void publishDomainDrafts(readDomainDrafts());
   });
+  $("#discard-domain-drafts").addEventListener("click", () => {
+    if (!window.confirm("Discard all unpublished domain, connection, and theme-preset changes?")) return;
+    if (!hasSavedWebRecord) {
+      content.web = {...makeDefaultWeb(false), domains: [], connections: []};
+    }
+    webDraftConnections = structuredClone(content.web.connections || []);
+    themePresetDrafts = structuredClone(content.web.themePresets || makeDefaultThemePresets());
+    renderDomains();
+    setStatus("#domain-publish-status", "Unpublished web changes discarded.");
+  });
   $("#domain-add-form").addEventListener("submit", event => {
     event.preventDefault();
     const domains = readDomainDrafts();
@@ -520,17 +833,18 @@
     let slug = baseSlug;
     let suffix = 2;
     while (domains.some(domain => domain.slug === slug)) slug = `${baseSlug}-${suffix++}`;
+    const now = new Date().toISOString();
     domains.push({
       id: `domain-${crypto.randomUUID()}`, slug, title, description: $("#new-domain-description").value.trim(),
       icon: $("#new-domain-icon").value.trim() || "code", published: true, hidden: false,
-      displayOrder: domains.length + 1, themePresetId: "tech",
-      position: {x: 50, y: 50}, threadLength: 65, pagePath: `/domains/${slug}`,
-      featuredProjectIds: [], socialLinkIds: [], connections: [], createdAt: null, updatedAt: null
+      displayOrder: domains.length + 1, themePresetId: themePresetDrafts[0]?.id || "solar",
+      position: {x: 50, y: 50}, threadLength: 65, pagePath: `/domains/${slug}`, pageContent: "", url: "",
+      featuredProjectIds: [], socialLinkIds: [], articles: [], media: [], createdAt: now, updatedAt: now
     });
     renderDomains(domains);
     $("#new-domain-title").value = "";
     $("#new-domain-description").value = "";
-    setStatus("#domain-publish-status", "Domain draft added. Review and publish to save it.");
+    setStatus("#domain-publish-status", "Domain draft added. It will appear publicly only after you press Publish domains.");
   });
   $("#domain-editor-list").addEventListener("click", event => {
     const row = event.target.closest(".domain-edit");
@@ -541,20 +855,27 @@
       const next = index + Number(event.target.closest("[data-domain-move]").dataset.domainMove);
       if (next < 0 || next >= domains.length) return;
       [domains[index], domains[next]] = [domains[next], domains[index]];
+      domains.forEach((domain, domainIndex) => { domain.displayOrder = domainIndex + 1; });
       renderDomains(domains);
       setStatus("#domain-publish-status", "Order changed in draft. Publish to apply it.");
       return;
     }
     if (event.target.closest("[data-domain-duplicate]")) {
       const original = domains[index];
-      let slug = `${original.slug}-copy`;
+      let suffixText = "-copy";
+      let slug = `${original.slug.slice(0, 60 - suffixText.length)}${suffixText}`;
       let suffix = 2;
-      while (domains.some(domain => domain.slug === slug)) slug = `${original.slug}-copy-${suffix++}`;
+      while (domains.some(domain => domain.slug === slug)) {
+        suffixText = `-copy-${suffix++}`;
+        slug = `${original.slug.slice(0, 60 - suffixText.length)}${suffixText}`;
+      }
+      const now = new Date().toISOString();
       domains.splice(index + 1, 0, {
-        ...original, id: `domain-${crypto.randomUUID()}`, slug, title: `${original.title} copy`,
-        pagePath: `/domains/${slug}`, position: {...original.position}, connections: [],
-        createdAt: null, updatedAt: null
+        ...original, id: `domain-${crypto.randomUUID()}`, slug, title: `${original.title.slice(0, 45)} copy`,
+        published: false, pagePath: `/domains/${slug}`, position: {...original.position},
+        createdAt: now, updatedAt: now, displayOrder: index + 2
       });
+      domains.forEach((domain, domainIndex) => { domain.displayOrder = domainIndex + 1; });
       renderDomains(domains);
       setStatus("#domain-publish-status", "Duplicate draft created. Publish to save it.");
       return;
@@ -563,49 +884,40 @@
       const target = domains[index];
       const referencedProjects = (target.featuredProjectIds || []).length;
       const referencedLinks = (target.socialLinkIds || []).length;
-      const strandPairs = new Set((content.web.connections || [])
+      const referencedMedia = (target.media || []).length;
+      const strandPairs = new Set(webDraftConnections
         .filter(edge => edge.from === target.id || edge.to === target.id)
         .map(edge => [edge.from, edge.to].sort().join(":")));
-      domains.forEach(domain => {
-        if (domain.id !== target.id && (domain.connections || []).includes(target.id)) {
-          strandPairs.add([domain.id, target.id].sort().join(":"));
-        }
-      });
-      const details = `Remove ${target.title} permanently?\n\nIts ${target.pagePath} page and custom page content will be removed. ${referencedProjects} featured-project references and ${referencedLinks} social-link references will be detached, but those projects and links will not be deleted. ${strandPairs.size} strand connections will be removed. Shared projects, links, media, and all other page content will be preserved.`;
+      const details = `Remove ${target.title} from the draft?\n\nIts ${target.pagePath} page and custom page content will be removed when published. ${referencedProjects} featured-project references, ${referencedLinks} social-link references, ${referencedMedia} media references, and ${strandPairs.size} strand connections will be detached. The shared projects, links, and media themselves will not be deleted; unrelated content will be preserved.`;
       if (!window.confirm(details)) return;
-      const updatedDomains = domains.filter(domain => domain.id !== target.id).map(domain => ({
-        ...domain, connections: domain.connections.filter(id => id !== target.id)
-      }));
+      const updatedDomains = domains.filter(domain => domain.id !== target.id);
+      updatedDomains.forEach((domain, domainIndex) => { domain.displayOrder = domainIndex + 1; });
+      webDraftConnections = webDraftConnections.filter(edge => edge.from !== target.id && edge.to !== target.id);
       renderDomains(updatedDomains);
-      void publishDomainDrafts(updatedDomains, `${target.title} removed and configuration published.`);
+      setStatus("#domain-publish-status", `${target.title} removed from the draft. ${referencedProjects} project, ${referencedLinks} social, ${referencedMedia} media reference(s), and ${strandPairs.size} strand connection(s) detached. Publish domains to save this deletion.`);
     }
-  });
-  $("#domain-editor-list").addEventListener("change", event => {
-    const row = event.target.closest(".domain-edit");
-    if (!row || !event.target.matches("[data-domain-title],[data-domain-description]")) return;
-    const title = $("[data-domain-title]", row).value;
-    const description = $("[data-domain-description]", row).value;
-    $$("[data-preview-theme]", row).forEach(preview => {
-      $("strong", preview).textContent = title;
-      $("small", preview).textContent = description;
-    });
   });
   $("#domain-editor-list").addEventListener("input", event => {
     const row = event.target.closest(".domain-edit");
-    if (row && event.target.matches("[data-domain-slug]")) {
+    if (!row) return;
+    if (event.target.matches("[data-domain-slug]")) {
       const slug = event.target.value.trim().toLowerCase();
       $("[data-domain-path]", row).value = `/domains/${slug}`;
     }
+    updateDomainPreview();
   });
+  $("#domain-editor-list").addEventListener("change", () => updateDomainPreview());
   $("#restore-domain-defaults").addEventListener("click", () => {
     const currentCount = content.web.domains?.length || 0;
-    if (!window.confirm(`Restore the initial eight-domain configuration? This replaces ${currentCount} current domain records and removes their connections and assignments. Projects, social links, media, and all other published content will be preserved.`)) return;
+    if (!window.confirm(`Restore the initial eight-domain configuration as a draft? This replaces ${currentCount} current domain records and detaches their strand, featured-project, and social-link references. Shared projects, social links, media, and all unrelated content are preserved. Nothing will publish until you press Publish domains.`)) return;
     const defaults = makeDefaultWeb();
+    webDraftConnections = [];
+    themePresetDrafts = structuredClone(defaults.themePresets);
     $("#web-enabled").checked = defaults.enabled;
     $("#web-section-title").value = defaults.sectionTitle;
     $("#web-section-subtitle").value = defaults.sectionSubtitle;
     renderDomains(defaults.domains);
-    void publishDomainDrafts(defaults.domains, "Initial eight domains restored and published.");
+    setStatus("#domain-publish-status", "Initial eight domains restored to a previewable draft. Publish domains to save the defaults.");
   });
 
   function renderProfilePhotos() {

@@ -185,7 +185,8 @@
     const domain = (Array.isArray(web?.domains) ? web.domains : []).find(item => item.slug === slug && item.published !== false);
     const page = $("#domain-page-content");
     if (!domain) {
-      page.innerHTML = `<h1>Domain not found</h1><p>This domain is unpublished or no longer available.</p>`;
+      document.title = "Domain not found | thelonelystick";
+      page.innerHTML = `<h1>Domain not found</h1><p>This domain is unpublished or no longer available.</p><a class="domain-back-link" href="/#web">Return to the web</a>`;
       return;
     }
     document.title = `${domain.title} | thelonelystick`;
@@ -194,68 +195,101 @@
     const featuredProjects = projects.filter((project, index) =>
       projectIds.has(project.id || `project-${slugify(project.title) || index + 1}`) && project.visible !== false);
     const socialLinks = links.filter((link, index) =>
-      socialIds.has(link.id || `social-${slugify(link.label) || index + 1}`));
+      socialIds.has(link.id || `social-${slugify(link.label) || index + 1}`) && safeLink(link.url || ""));
     const externalUrl = safeLink(domain.url || "");
+    const articles = Array.isArray(domain.articles) ? domain.articles : [];
+    const media = Array.isArray(domain.media) ? domain.media : [];
     const descriptionMeta = $('meta[name="description"]');
     if (descriptionMeta) descriptionMeta.content = domain.description;
-    page.innerHTML = `<span class="kicker">${escapeHTML(domain.themePresetId || domain.icon || "DOMAIN")}</span><h1>${escapeHTML(domain.title)}</h1><p>${escapeHTML(domain.description)}</p>${domain.pageContent ? `<div class="domain-page-copy">${escapeHTML(domain.pageContent)}</div>` : ""}${externalUrl ? `<a class="btn btn-gold" href="${escapeHTML(externalUrl)}" target="_blank" rel="noopener noreferrer">Visit ${escapeHTML(domain.title)} ↗</a>` : ""}${featuredProjects.length ? `<section><h2>Featured projects</h2><ul>${featuredProjects.map(project => `<li><a href="${escapeHTML(safeLink(project.url || "") || "#projects")}">${escapeHTML(project.title)}</a> — ${escapeHTML(project.description)}</li>`).join("")}</ul></section>` : ""}${socialLinks.length ? `<section><h2>Related links</h2><ul>${socialLinks.map(link => `<li><a href="${escapeHTML(safeLink(link.url || ""))}" target="_blank" rel="noopener noreferrer">${escapeHTML(link.label)}</a></li>`).join("")}</ul></section>` : ""}`;
+    page.innerHTML = `<span class="kicker">${escapeHTML(domain.themePresetId || domain.icon || "DOMAIN")}</span><h1>${escapeHTML(domain.title)}</h1><section><h2>Introduction</h2><p>${escapeHTML(domain.description)}</p>${domain.pageContent ? `<div class="domain-page-copy">${escapeHTML(domain.pageContent)}</div>` : ""}</section>${featuredProjects.length ? `<section><h2>Featured projects</h2><ul>${featuredProjects.map(project => {
+      const url = safeLink(project.url || "");
+      const title = escapeHTML(project.title);
+      return `<li>${url ? `<a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">${title}</a>` : title} — ${escapeHTML(project.description)}</li>`;
+    }).join("")}</ul></section>` : ""}${articles.length ? `<section><h2>Articles</h2><ul>${articles.map(article => {
+      const title = escapeHTML(article?.title || "");
+      const url = safeLink(article?.url || "");
+      return title ? `<li>${url ? `<a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">${title}</a>` : title}${article.description ? ` — ${escapeHTML(article.description)}` : ""}</li>` : "";
+    }).join("")}</ul></section>` : ""}${media.length ? `<section><h2>Media</h2><div class="domain-media-grid">${media.map(item => {
+      const url = safeImage(item?.url || "");
+      return url ? `<figure><img src="${escapeHTML(url)}" alt="${escapeHTML(item.alt || item.title || domain.title)}" loading="lazy"><figcaption>${escapeHTML(item.title || item.alt || "")}</figcaption></figure>` : "";
+    }).join("")}</div></section>` : ""}${socialLinks.length ? `<section><h2>Social links</h2><ul>${socialLinks.map(link => `<li><a href="${escapeHTML(safeLink(link.url || ""))}" target="_blank" rel="noopener noreferrer">${escapeHTML(link.label)}</a></li>`).join("")}</ul></section>` : ""}${externalUrl ? `<section><h2>More</h2><a class="btn btn-gold" href="${escapeHTML(externalUrl)}" target="_blank" rel="noopener noreferrer">Visit ${escapeHTML(domain.title)} ↗</a></section>` : ""}${featuredProjects.length || articles.length || media.length || socialLinks.length || externalUrl || domain.pageContent ? "" : `<p class="domain-empty-state">More in this domain will appear here when it is ready.</p>`}`;
   }
 
   function renderOrganicWeb(web, projects, links) {
     const section = $("#web");
-    const domains = Array.isArray(web?.domains)
-      ? web.domains.filter(domain => domain && domain.published !== false && domain.hidden !== true)
-        .sort((a, b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0))
-      : [];
-    section.hidden = web?.enabled === false || domains.length === 0;
+    const domains = Array.isArray(web?.domains) ? web.domains : [];
+    section.hidden = web?.enabled === false || !domains.some(domain => WebRenderer.publishedAndVisible(domain));
     $("#web-title").textContent = web?.sectionTitle || "Welcome to my web";
     $("#web-subtitle").textContent = web?.sectionSubtitle || "";
     const canvas = $("#organic-web-canvas");
     const cards = $("#organic-web-domains");
     const list = $("#domain-accessible-list");
+    const navigation = $("#domain-accessible-nav");
     if (section.hidden) {
       cards.replaceChildren();
       list.replaceChildren();
       $("#organic-web-threads").replaceChildren();
+      navigation.hidden = true;
       renderDomainPage(web, projects, links);
       return;
     }
-    cards.innerHTML = domains.map((domain, index) => {
-      const x = Math.max(8, Math.min(92, Number(domain.position?.x) || 50));
-      const y = Math.max(10, Math.min(90, Number(domain.position?.y) || 50));
-      const path = `/domains/${encodeURIComponent(domain.slug)}`;
-      const duration = Math.max(5, Math.min(14, 5 + Number(domain.threadLength || 60) / 10));
-      return `<a class="organic-domain-card" href="${escapeHTML(path)}" style="--domain-x:${x}%;--domain-y:${y}%;--suspension-duration:${duration}s;--sway-delay:${(index % 6) * -.55}s" aria-label="Explore ${escapeHTML(domain.title)}: ${escapeHTML(domain.description)}"><span class="domain-attachment" aria-hidden="true"></span><span class="domain-icon" aria-hidden="true">${domainIcon(domain.icon)}</span><strong>${escapeHTML(domain.title)}</strong><span class="domain-description">${escapeHTML(domain.description)}</span><span class="domain-open" aria-hidden="true">Explore ↗</span></a>`;
-    }).join("");
-    list.innerHTML = domains.map(domain =>
-      `<li><a href="${escapeHTML(`/domains/${encodeURIComponent(domain.slug)}`)}"><strong>${escapeHTML(domain.title)}</strong><span>${escapeHTML(domain.description)}</span></a></li>`
-    ).join("");
-    const point = domain => ({
-      x: (Math.max(8, Math.min(92, Number(domain.position?.x) || 50)) * 10),
-      y: (Math.max(10, Math.min(90, Number(domain.position?.y) || 50)) * 7) - 48
+    navigation.hidden = false;
+    WebRenderer.render({
+      canvas,
+      svg: $("#organic-web-threads"),
+      cards,
+      list,
+      web,
+      domains,
+      pathForDomain: domain => `/domains/${encodeURIComponent(domain.slug)}`
     });
-    const paths = domains.map(domain => {
-      const end = point(domain);
-      const bend = Math.max(18, Math.min(100, Number(domain.threadLength) || 60));
-      const controlX = (500 + end.x) / 2 + (end.x - 500) * .1;
-      const controlY = (350 + end.y) / 2 - bend * .7;
-      return `<path class="domain-thread" d="M500 350 Q${controlX.toFixed(1)} ${controlY.toFixed(1)} ${end.x.toFixed(1)} ${end.y.toFixed(1)}"/>`;
-    });
-    const byId = new Map(domains.map(domain => [domain.id, domain]));
-    const connections = Array.isArray(web.connections) ? web.connections : [];
-    connections.forEach(connection => {
-      const from = byId.get(connection.from);
-      const to = byId.get(connection.to);
-      if (!from || !to || from.id === to.id) return;
-      const a = point(from);
-      const b = point(to);
-      const bend = ((Number(from.threadLength) || 60) + (Number(to.threadLength) || 60)) / 2;
-      paths.push(`<path class="domain-connection" d="M${a.x.toFixed(1)} ${a.y.toFixed(1)} Q${((a.x + b.x) / 2).toFixed(1)} ${((a.y + b.y) / 2 - bend * .2).toFixed(1)} ${b.x.toFixed(1)} ${b.y.toFixed(1)}"/>`);
-    });
-    $("#organic-web-threads").innerHTML = paths.join("");
-    canvas.style.setProperty("--domain-count", domains.length);
     renderDomainPage(web, projects, links);
   }
+
+  let webRevealTimer;
+  function setWebRevealed(revealed, animate = true) {
+    const entrance = $("#web-entrance");
+    const canvas = $("#organic-web-canvas");
+    const navigation = $("#domain-accessible-nav");
+    const reveal = $("#web-reveal-control");
+    const collapse = $("#web-collapse-control");
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const shouldAnimate = animate && !reduceMotion;
+    window.clearTimeout(webRevealTimer);
+    if (revealed && shouldAnimate && !canvas.hidden) return;
+    if (revealed && shouldAnimate) {
+      entrance.hidden = false;
+      entrance.classList.add("is-opening");
+      reveal.hidden = true;
+      collapse.hidden = true;
+      webRevealTimer = window.setTimeout(() => setWebRevealed(true, false), 760);
+      return;
+    }
+    entrance.classList.remove("is-opening");
+    entrance.hidden = revealed;
+    canvas.hidden = !revealed;
+    navigation.hidden = !revealed;
+    reveal.setAttribute("aria-expanded", String(revealed));
+    reveal.hidden = revealed;
+    collapse.hidden = !revealed;
+    canvas.classList.toggle("is-revealed", revealed);
+    if (revealed) {
+      const saved = window.__portfolioContent?.web;
+      if (saved) WebRenderer.render({
+        canvas, svg: $("#organic-web-threads"), cards: $("#organic-web-domains"),
+        list: $("#domain-accessible-list"), web: saved, pathForDomain: domain => `/domains/${encodeURIComponent(domain.slug)}`
+      });
+    } else if ($("#web-collapse-control") === document.activeElement) {
+      $("#web-enter").focus();
+    }
+  }
+  $("#web-enter").addEventListener("click", () => setWebRevealed(true));
+  $("#web-skip").addEventListener("click", () => setWebRevealed(true, false));
+  $("#web-reveal-control").addEventListener("click", () => setWebRevealed(true, false));
+  $("#web-collapse-control").addEventListener("click", () => setWebRevealed(false, false));
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").addEventListener?.("change", event => {
+    if (event.matches) $("#web-motion-note").textContent = "Reduced motion is enabled; the web opens without animation.";
+  });
 
   function renderRichText(element, value) {
     if (!element) return;
@@ -284,6 +318,7 @@
   }
   function renderContent(saved) {
     const content = saved && typeof saved === "object" ? saved : {};
+    window.__portfolioContent = content;
     activeProfilePhotos = Array.isArray(content.profilePhotos) ? content.profilePhotos : [];
     renderCopy(content.siteCopy || {});
     const heroLead = $("[data-copy='heroLead']");
@@ -333,5 +368,11 @@
       }
       renderContent(data.content);
     })
-    .catch(error => console.error("Could not load published portfolio content.", error));
+    .catch(error => {
+      console.error("Could not load published portfolio content.", error);
+      if (domainRoute) {
+        document.title = "Domain unavailable | thelonelystick";
+        $("#domain-page-content").innerHTML = `<h1>Domain unavailable</h1><p>This page could not be loaded right now.</p><a class="domain-back-link" href="/#web">Return to the web</a>`;
+      }
+    });
 })();

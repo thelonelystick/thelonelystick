@@ -142,13 +142,24 @@
     </section>
 
     <section class="organic-web wrap section" id="web" hidden>
+      <div class="web-entrance" id="web-entrance">
+        <div class="web-entrance-panel web-entrance-panel-light"><span>MY CREATIVE DOMAINS</span></div>
+        <div class="web-entrance-panel web-entrance-panel-dark"><span>EXPLORE WHAT I CREATE</span></div>
+        <h2 class="web-entrance-title">Welcome to my web</h2>
+        <button class="web-enter" id="web-enter" type="button" aria-controls="organic-web-canvas">Enter <span aria-hidden="true">↘</span></button>
+        <button class="web-skip" id="web-skip" type="button" aria-controls="organic-web-canvas">Skip animation</button>
+      </div>
+      <div class="web-controls">
+        <button class="web-reveal-control" id="web-reveal-control" type="button" aria-expanded="false" aria-controls="organic-web-canvas">Reveal the web</button>
+        <button class="web-collapse-control" id="web-collapse-control" type="button" hidden>Collapse web</button>
+        <span id="web-motion-note" class="visually-hidden">The web is shown without animation.</span>
+      </div>
       <div class="section-heading"><div><div class="kicker">MY CREATIVE DOMAINS</div><h2 id="web-title">Welcome to my web</h2></div><p id="web-subtitle"></p></div>
-      <div class="organic-web-canvas" id="organic-web-canvas" aria-label="Organic web of published domains">
+      <div class="organic-web-canvas" id="organic-web-canvas" aria-label="Organic web of published domains" hidden>
         <svg class="organic-web-threads" id="organic-web-threads" aria-hidden="true" focusable="false" preserveAspectRatio="none" viewBox="0 0 1000 700"></svg>
-        <div class="organic-web-hub" aria-hidden="true"></div>
         <div class="organic-web-domains" id="organic-web-domains"></div>
       </div>
-      <nav class="domain-accessible-list" aria-label="All published web domains"><h3>Explore all domains</h3><ol id="domain-accessible-list"></ol></nav>
+      <nav class="domain-accessible-nav" id="domain-accessible-nav" aria-label="All published web domains" hidden><h3>Explore all domains</h3><ol id="domain-accessible-list"></ol></nav>
     </section>
 
     <section class="projects wrap section" id="projects">
@@ -180,6 +191,7 @@
     <article id="domain-page-content"></article>
   </section>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="web-renderer.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
