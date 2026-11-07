@@ -1,4 +1,4 @@
-BHAWISHYA SOORYAVANSHI — PERSONAL PORTFOLIO
+BHAWISHYA KUMAR SOORYAVANSHI — PERSONAL PORTFOLIO
 
 Files:
 - index.html: website content and page structure
