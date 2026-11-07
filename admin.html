@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>Admin Studio | Bhawishya</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+<div class="shell">
+<aside class="sidebar" id="sidebar">
+<a class="brand" href="index.html"><span class="brand-icon">B</span><span>bhawishya<span class="gold">.</span></span></a>
+<p class="eyebrow side-label">PERSONAL STUDIO</p>
+<nav aria-label="Admin sections">
+<button class="side-link active" data-view="overview">⌂ <span>Overview</span></button>
+<button class="side-link" data-view="homepage">✳ <span>Homepage content</span></button>
+<button class="side-link" data-view="projects">▦ <span>Projects & domains</span></button>
+<button class="side-link" data-view="appearance">◐ <span>Appearance</span></button>
+<button class="side-link" data-view="links">↗ <span>Social links</span></button>
+<button class="side-link" data-view="inbox">✉ <span>Contact inbox</span></button>
+</nav>
+<div class="owner"><span class="avatar">BS</span><span><b>Site owner</b><small>Local preview mode</small></span><i></i></div>
+</aside>
+<main class="main">
+<header class="topbar"><button class="mobile-menu" id="mobile-menu" aria-label="Toggle sidebar">☰</button><div><small>Workspace / <b id="crumb">Overview</b></small><h1 id="page-title">Good to see you.</h1></div><div class="top-actions"><span class="draft">● Local draft</span><a class="button secondary" href="index.html" target="_blank" rel="noreferrer">Preview site ↗</a></div></header>
+<section class="view active" id="view-overview">
+<div class="welcome"><div><span class="eyebrow">YOUR PERSONAL UNIVERSE</span><h2>One place for<br>everything you build.</h2><p>Manage your homepage, project cards, visual identity, and social destinations from this studio.</p><button class="button primary" data-go="homepage">Edit homepage ↗</button></div><div class="orb-art"><i></i><i></i><i></i><b>B<span>.</span></b><small>LEARN · MAKE · SHARE</small></div></div>
+<div class="stats"><article><small>CONTENT AREAS</small><strong>06</strong><span>Homepage, projects, links & more</span></article><article><small>PROJECT CARDS</small><strong id="project-count">04</strong><span>Shown on the homepage</span></article><article><small>THEME PRESETS</small><strong>02</strong><span>Solar dark / Lunar light</span></article></div>
+<div class="panel"><span class="eyebrow">QUICK ACTIONS</span><h3>Make a change</h3><div class="quick"><button data-go="homepage"><b>✳</b><strong>Homepage copy</strong><small>Update your introduction</small></button><button data-go="projects"><b>▦</b><strong>Projects & domains</strong><small>Edit project cards</small></button><button data-go="appearance"><b>◐</b><strong>Visual appearance</strong><small>Choose a theme preview</small></button></div></div>
+<div class="notice"><b>ⓘ</b><p><strong>Frontend prototype only.</strong> Changes are saved in this browser using localStorage. This is not a secure multi-user admin system and does not publish changes to other visitors. Add server-side authentication, authorization, and a database before production.</p></div>
+</section>
+<section class="view" id="view-homepage"><div class="intro"><span class="eyebrow">PUBLIC SITE / CONTENT</span><h2>Homepage content</h2><p>Update your introduction. The headline accepts simple HTML such as <code>&lt;br&gt;</code> for line breaks.</p></div>
+<form class="panel editor" id="homepage-form"><label for="hero-title">Hero headline</label><textarea id="hero-title" rows="3" required></textarea><label for="hero-lead">Introduction</label><textarea id="hero-lead" rows="4" required></textarea><div class="form-actions"><button type="button" class="button secondary" id="reset-homepage">Reset defaults</button><button class="button primary" type="submit">Save changes ↗</button></div><p class="status" id="homepage-status" role="status"></p></form></section>
+<section class="view" id="view-projects"><div class="intro"><span class="eyebrow">PUBLIC SITE / CARDS</span><h2>Projects & domains</h2><p>Edit titles and summaries for the project cards shown on the homepage.</p></div><div class="project-list" id="project-editor-list"></div><div class="form-actions"><button class="button secondary" id="reset-projects" type="button">Reset defaults</button><button class="button primary" id="save-projects" type="button">Save project cards ↗</button></div><p class="status" id="projects-status" role="status"></p></section>
+<section class="view" id="view-appearance"><div class="intro"><span class="eyebrow">DESIGN SYSTEM</span><h2>Appearance</h2><p>Choose a preview palette for your personal universe.</p></div><div class="themes"><button class="theme-card selected" data-theme-choice="dark"><div class="preview solar"><b>☼</b><i></i><i></i><em></em></div><strong>Solar</strong><small>Warm black · Ivory · Gold</small><span>Selected preview</span></button><button class="theme-card" data-theme-choice="light"><div class="preview lunar"><b>☾</b><i></i><i></i><em></em></div><strong>Lunar</strong><small>Porcelain · Charcoal · Violet</small><span>Selected preview</span></button></div><div class="panel"><h3>Design principles</h3><p>Keep typography calm, borders subtle, and actions premium. Avoid excessive neon, heavy glow, or motion that distracts from the content.</p><div class="swatches"><i></i><i></i><i></i><i></i><i></i></div></div></section>
+<section class="view" id="view-links"><div class="intro"><span class="eyebrow">CONNECT YOUR WORLDS</span><h2>Social links</h2><p>Manage link labels and URLs. Connecting these to the public site requires a publishing backend.</p></div><form class="panel editor" id="links-form"><div id="links-list"></div><button class="button secondary" id="add-link" type="button">＋ Add another link</button><div class="form-actions"><span></span><button class="button primary" type="submit">Save links ↗</button></div><p class="status" id="links-status" role="status"></p></form></section>
+<section class="view" id="view-inbox"><div class="intro"><span class="eyebrow">MESSAGES</span><h2>Contact inbox</h2><p>Messages cannot appear here until the public contact form is connected to a backend or email service.</p></div><div class="empty"><b>✉</b><h3>Your inbox will live here.</h3><p>Once a secure contact endpoint is configured, messages can be stored, filtered, and marked as read from this screen.</p><span>Backend not connected</span></div></section>
+<footer class="admin-footer">BHAWISHYA / ADMIN STUDIO <span>Frontend starter · Not production-secure</span></footer>
+</main></div><div class="toast" id="toast" role="status" aria-live="polite"></div><script src="admin.js"></script></body></html>
