@@ -28,6 +28,71 @@ create policy "Portfolio owner can update published portfolio"
 grant select on public.portfolio_content to anon, authenticated;
 grant insert, update on public.portfolio_content to authenticated;
 
+insert into public.portfolio_content (id, content)
+values (
+  'published',
+  $portfolio$
+  {
+    "heroTitle": "Building my skills.<br>Bringing ideas <span class=\"gold-text\">to life.</span>",
+    "heroLead": "I'm Bhawishya, a student developer exploring web technologies, AI-powered tools, and digital products. I learn by building — one idea, one experiment, and one project at a time.",
+    "heroImage": "",
+    "profilePhotos": [],
+    "contact": {
+      "email": "sooryavanshibhawishya@gmail.com",
+      "message": "Have a project idea, a suggestion, or an opportunity to learn and collaborate? I'd be glad to hear from you."
+    },
+    "links": [
+      {"label": "GitHub", "url": "https://github.com/thelonelystick", "type": "Code"},
+      {"label": "YouTube", "url": "", "type": "Video"},
+      {"label": "Instagram", "url": "", "type": "Social"}
+    ],
+    "projects": [
+      {
+        "title": "AstroGPT",
+        "description": "An educational Jyotisha-inspired web experience combining traditional interpretations with a modern interface and calculation-focused exploration.",
+        "kind": "astro",
+        "meta": "WEB PROJECT · INTERACTIVE EXPERIENCE",
+        "tags": ["Web Development", "UI Design", "Research"],
+        "url": "https://astro-gpt-rho.vercel.app",
+        "image": "",
+        "visible": true
+      },
+      {
+        "title": "SCARLET",
+        "description": "A personal assistant concept for voice and text conversations, task management, routines, and monthly budgeting.",
+        "kind": "scarlet",
+        "meta": "AI CONCEPT · PRODUCTIVITY",
+        "tags": ["AI Assistants", "Product Thinking"],
+        "url": "",
+        "image": "",
+        "visible": true
+      },
+      {
+        "title": "PurpleDevs",
+        "description": "A digital services brand concept for websites, customized web tools, social media support, and AI solutions.",
+        "kind": "purpledevs",
+        "meta": "BRAND CONCEPT · DIGITAL SERVICES",
+        "tags": ["Web Services", "Branding", "AI Tools"],
+        "url": "",
+        "image": "",
+        "visible": true
+      },
+      {
+        "title": "FUZION COACHING INSTITUTE",
+        "description": "A coaching management system concept for organizing student learning, teacher workflows, parent visibility, and administration.",
+        "kind": "fuzion",
+        "meta": "EDTECH CONCEPT · DASHBOARD",
+        "tags": ["EdTech", "Dashboard UX", "Firebase"],
+        "url": "",
+        "image": "",
+        "visible": true
+      }
+    ]
+  }
+  $portfolio$::jsonb
+)
+on conflict (id) do nothing;
+
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
   'portfolio-media',

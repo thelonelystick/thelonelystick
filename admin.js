@@ -8,29 +8,15 @@
   const ADMIN_REDIRECT_URL = "https://thelonelystick.vercel.app/admin";
   const BUCKET = "portfolio-media";
   const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
-  const defaults = {
-    heroTitle: 'Building my skills.<br>Bringing ideas <span class="gold-text">to life.</span>',
-    heroLead: "I'm Bhawishya, a student developer exploring web technologies, AI-powered tools, and digital products. I learn by building — one idea, one experiment, and one project at a time.",
+  let content = {
+    siteCopy: {},
     heroImage: "",
     profilePhotos: [],
-    contact: {
-      email: "sooryavanshibhawishya@gmail.com",
-      message: "Have a project idea, a suggestion, or an opportunity to learn and collaborate? I'd be glad to hear from you."
-    },
-    links: [
-      {label: "GitHub", url: "https://github.com/thelonelystick", type: "Code"},
-      {label: "YouTube", url: "", type: "Video"},
-      {label: "Instagram", url: "", type: "Social"}
-    ],
-    projects: [
-      {title: "AstroGPT", description: "An educational Jyotisha-inspired web experience combining traditional interpretations with a modern interface and calculation-focused exploration.", kind: "astro", meta: "WEB PROJECT · INTERACTIVE EXPERIENCE", tags: ["Web Development", "UI Design", "Research"], url: "https://astro-gpt-rho.vercel.app", image: "", visible: true},
-      {title: "SCARLET", description: "A personal assistant concept for voice and text conversations, task management, routines, and monthly budgeting.", kind: "scarlet", meta: "AI CONCEPT · PRODUCTIVITY", tags: ["AI Assistants", "Product Thinking"], url: "", image: "", visible: true},
-      {title: "PurpleDevs", description: "A digital services brand concept for websites, customized web tools, social media support, and AI solutions.", kind: "purpledevs", meta: "BRAND CONCEPT · DIGITAL SERVICES", tags: ["Web Services", "Branding", "AI Tools"], url: "", image: "", visible: true},
-      {title: "FUZION COACHING INSTITUTE", description: "A coaching management system concept for organizing student learning, teacher workflows, parent visibility, and administration.", kind: "fuzion", meta: "EDTECH CONCEPT · DASHBOARD", tags: ["EdTech", "Dashboard UX", "Firebase"], url: "", image: "", visible: true}
-    ]
+    contact: {email: "", message: ""},
+    links: [],
+    projects: []
   };
-  let content = structuredClone(defaults);
-  let links = structuredClone(defaults.links);
+  let links = [];
   let authClient;
   let contentLoaded = false;
   let loadingContent;
@@ -80,15 +66,30 @@
       setStatus("#content-backend-status", "Loading published content…");
       const {data, error} = await authClient.from("portfolio_content")
         .select("content").eq("id", "published").maybeSingle();
-      if (error) throw new Error(`Could not load published content: ${error.message}`);
+      if (error) {
+        const setupError = ["PGRST205", "42P01"].includes(error.code)
+          ? "Portfolio database table is missing. Run both SQL migrations in supabase/migrations, then reload this page."
+          : error.code === "42501"
+            ? "Supabase denied access to portfolio content. Check the migration's read/write policies and your admin account."
+            : `Could not load published content: ${error.message}`;
+        throw new Error(setupError);
+      }
+      if (!data?.content || typeof data.content !== "object") {
+        throw new Error("Published portfolio content is missing. Run the Supabase portfolio migrations before editing.");
+      }
       const saved = data?.content && typeof data.content === "object" ? data.content : {};
+      if (!saved.siteCopy || typeof saved.siteCopy !== "object" ||
+          !("heroTitle" in saved.siteCopy) || !("heroLead" in saved.siteCopy)) {
+        throw new Error("Database page copy is missing. Run 20261108022000_portfolio_site_copy.sql, then reload this page.");
+      }
       content = {
-        ...structuredClone(defaults),
         ...saved,
-        contact: {...defaults.contact, ...(saved.contact || {})},
-        profilePhotos: Array.isArray(saved.profilePhotos) ? saved.profilePhotos.slice(0, 3) : [],
-        links: Array.isArray(saved.links) ? saved.links : structuredClone(defaults.links),
-        projects: Array.isArray(saved.projects) ? saved.projects : structuredClone(defaults.projects)
+        siteCopy: saved.siteCopy && typeof saved.siteCopy === "object" ? saved.siteCopy : {},
+        heroImage: typeof saved.heroImage === "string" ? saved.heroImage : "",
+        contact: saved.contact && typeof saved.contact === "object" ? saved.contact : {email: "", message: ""},
+        profilePhotos: Array.isArray(saved.profilePhotos) ? saved.profilePhotos.slice(0, 6) : [],
+        links: Array.isArray(saved.links) ? saved.links : [],
+        projects: Array.isArray(saved.projects) ? saved.projects : []
       };
       links = content.links;
       contentLoaded = true;
@@ -98,7 +99,7 @@
       renderLinks();
       renderProfilePhotos();
       $("#owner-email").textContent = ADMIN_EMAIL;
-      setStatus("#content-backend-status", data ? "Connected · Published content" : "Connected · Defaults not published yet");
+      setStatus("#content-backend-status", "Connected · Published content");
       return content;
     })();
     try { return await loadingContent; }
@@ -142,8 +143,8 @@
   }
 
   function renderHome() {
-    $("#hero-title").value = content.heroTitle || defaults.heroTitle;
-    $("#hero-lead").value = content.heroLead || defaults.heroLead;
+    $("#hero-title").value = content.siteCopy?.heroTitle || "";
+    $("#hero-lead").value = content.siteCopy?.heroLead || "";
     $("#hero-image-url").value = content.heroImage || "";
     const preview = $("#hero-image-preview");
     preview.src = content.heroImage || "";
@@ -157,8 +158,11 @@
       return;
     }
     const previous = structuredClone(content);
-    content.heroTitle = $("#hero-title").value.trim();
-    content.heroLead = $("#hero-lead").value.trim();
+    content.siteCopy = {
+      ...(content.siteCopy || {}),
+      heroTitle: $("#hero-title").value.trim(),
+      heroLead: $("#hero-lead").value.trim()
+    };
     content.heroImage = image;
     try {
       await publishContent();
@@ -170,8 +174,8 @@
     }
   });
   $("#reset-homepage").addEventListener("click", () => {
-    $("#hero-title").value = defaults.heroTitle;
-    $("#hero-lead").value = defaults.heroLead;
+    $("#hero-title").value = "";
+    $("#hero-lead").value = "";
   });
   $("#clear-hero-image").addEventListener("click", () => {
     $("#hero-image-url").value = "";
@@ -264,9 +268,6 @@
     renderProjects();
     content.projects = previous;
   }
-  $("#reset-projects").addEventListener("click", () => {
-    renderProjectsWith(structuredClone(defaults.projects));
-  });
   $("#project-editor-list").addEventListener("click", event => {
     const row = event.target.closest(".project-edit");
     if (!row) return;

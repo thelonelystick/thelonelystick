@@ -6,27 +6,6 @@
   const SUPABASE_PUBLISHABLE_KEY = "sb_publishable__mdO3XEbIwSJDnGXyqSlFg_g7TxWpSF";
   const CONTENT_TABLE = "portfolio_content";
 
-  const defaults = {
-    heroTitle: 'Building my skills.<br>Bringing ideas <span class="gold-text">to life.</span>',
-    heroLead: "I'm Bhawishya, a student developer exploring web technologies, AI-powered tools, and digital products. I learn by building — one idea, one experiment, and one project at a time.",
-    heroImage: "",
-    profilePhotos: [],
-    contact: {
-      email: "sooryavanshibhawishya@gmail.com",
-      message: "Have a project idea, a suggestion, or an opportunity to learn and collaborate? I'd be glad to hear from you."
-    },
-    links: [
-      {label: "GitHub", url: "https://github.com/thelonelystick", type: "Code"},
-      {label: "YouTube", url: "", type: "Video"},
-      {label: "Instagram", url: "", type: "Social"}
-    ],
-    projects: [
-      {title: "AstroGPT", description: "An educational Jyotisha-inspired web experience combining traditional interpretations with a modern interface and calculation-focused exploration.", kind: "astro", meta: "WEB PROJECT · INTERACTIVE EXPERIENCE", tags: ["Web Development", "UI Design", "Research"], url: "https://astro-gpt-rho.vercel.app", image: "", visible: true},
-      {title: "SCARLET", description: "A personal assistant concept for voice and text conversations, task management, routines, and monthly budgeting.", kind: "scarlet", meta: "AI CONCEPT · PRODUCTIVITY", tags: ["AI Assistants", "Product Thinking"], url: "", image: "", visible: true},
-      {title: "PurpleDevs", description: "A digital services brand concept for websites, customized web tools, social media support, and AI solutions.", kind: "purpledevs", meta: "BRAND CONCEPT · DIGITAL SERVICES", tags: ["Web Services", "Branding", "AI Tools"], url: "", image: "", visible: true},
-      {title: "FUZION COACHING INSTITUTE", description: "A coaching management system concept for organizing student learning, teacher workflows, parent visibility, and administration.", kind: "fuzion", meta: "EDTECH CONCEPT · DASHBOARD", tags: ["EdTech", "Dashboard UX", "Firebase"], url: "", image: "", visible: true}
-    ]
-  };
   const escapeHTML = value => String(value ?? "").replace(/[&<>"']/g, character =>
     ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[character]));
 
@@ -115,10 +94,10 @@
   };
   const defaultArt = kind => ({
     astro: '<div class="planet"></div><div class="planet-ring"></div>',
-    scarlet: '<div class="ai-panel"><div class="panel-top"><i></i><i></i><i></i><span>SCARLET / ASSISTANT</span></div><div class="soundwave"><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b></div><div class="ai-caption">A SECOND BRAIN, DESIGNED AROUND YOU</div></div>',
-    purpledevs: '<div class="pd-mark">P<span>D</span></div><div class="pd-orbit"></div>',
-    fuzion: '<div class="edu-card"><span class="edu-star">✳</span><strong>Learn with clarity.</strong><div class="edu-lines"><i></i><i></i><i></i></div><small>STUDENT · TEACHER · PARENT</small></div>'
-  }[kind] || '<span class="custom-project-mark">PROJECT</span>');
+    scarlet: '<div class="ai-panel"><div class="panel-top"><i></i><i></i><i></i></div><div class="soundwave"><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b></div></div>',
+    purpledevs: '<div class="pd-orbit"></div>',
+    fuzion: '<div class="edu-card"><span class="edu-star">✳</span><div class="edu-lines"><i></i><i></i><i></i></div></div>'
+  }[kind] || '<span class="custom-project-mark"></span>');
   const projectMarkup = (project, index) => {
     const kind = ["astro", "scarlet", "purpledevs", "fuzion"].includes(project.kind) ? project.kind : "custom";
     const image = safeImage(project.image || "");
@@ -129,7 +108,7 @@
     const tags = Array.isArray(project.tags) ? project.tags : [];
     const art = image
       ? `<img class="project-image" src="${escapeHTML(image)}" alt="${escapeHTML(project.title)} project preview" loading="lazy" decoding="async">`
-      : `${defaultArt(kind)}${kind === "astro" ? `<div class="art-word">${escapeHTML(project.title)}<span>✳</span></div>` : ""}`;
+      : `${defaultArt(kind)}<div class="art-word">${escapeHTML(project.title)}<span>✳</span></div>`;
     const inner = `<div class="browser-bar"><span class="browser-controls" aria-hidden="true"><i></i><i></i><i></i></span><span class="browser-title">${escapeHTML(project.title)}</span><span class="browser-domain">${escapeHTML(domain)}</span></div><div class="project-art ${kind}${image ? " has-screenshot" : ""}"><span class="art-label">${escapeHTML(project.meta || "PROJECT")}</span><span class="art-number">${String(index + 1).padStart(2, "0")}</span>${art}</div><div class="project-body"><div class="project-meta">${escapeHTML(project.meta || "PROJECT")}</div><h3>${escapeHTML(project.title)}</h3><p>${escapeHTML(project.description)}</p><div class="tags">${tags.map(tag => `<span>${escapeHTML(tag)}</span>`).join("")}</div></div>`;
     return destination
       ? `<a class="project-card" href="${escapeHTML(destination)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeHTML(project.title)} project">${inner}</a>`
@@ -148,16 +127,7 @@
       const kind = ["astro", "scarlet", "purpledevs", "fuzion"].find(name => art.classList.contains(name)) || "custom";
       image.remove();
       art.classList.remove("has-screenshot");
-      art.insertAdjacentHTML("beforeend", defaultArt(kind));
-      if (kind === "astro") {
-        const title = document.createElement("div");
-        const mark = document.createElement("span");
-        title.className = "art-word";
-        title.append(document.createTextNode($("h3", card).textContent));
-        mark.textContent = "✳";
-        title.append(mark);
-        art.append(title);
-      }
+      art.insertAdjacentHTML("beforeend", `${defaultArt(kind)}<div class="art-word">${escapeHTML($("h3", card).textContent)}<span>✳</span></div>`);
     }, {once: true}));
     $("#web-domain-cards").innerHTML = visible.slice(0, 4).map(project => {
       const destination = safeLink(project.url || "");
@@ -178,25 +148,37 @@
     });
   }
 
-  function renderContent(saved = {}) {
-    const content = {
-      ...defaults,
-      ...saved,
-      contact: {...defaults.contact, ...(saved.contact || {})},
-      links: Array.isArray(saved.links) ? saved.links : defaults.links,
-      profilePhotos: Array.isArray(saved.profilePhotos) ? saved.profilePhotos : [],
-      projects: Array.isArray(saved.projects) ? saved.projects : defaults.projects
-    };
-    activeProfilePhotos = content.profilePhotos;
-    const title = $("[data-editable='heroTitle']");
-    const lead = $("[data-editable='heroLead']");
-    if (title && content.heroTitle) {
-      title.innerHTML = escapeHTML(content.heroTitle)
-        .replace(/&lt;br\s*\/?&gt;/gi, "<br>")
-        .replace(/&lt;span class=&quot;gold-text&quot;&gt;/gi, '<span class="gold-text">')
-        .replace(/&lt;\/span&gt;/gi, "</span>");
-    }
-    if (lead && content.heroLead) lead.textContent = content.heroLead;
+  function renderRichText(element, value) {
+    if (!element) return;
+    element.innerHTML = escapeHTML(value || "")
+      .replace(/&lt;br\s*\/?&gt;/gi, "<br>")
+      .replace(/&lt;span class=&quot;(gold-text|gold|dim)&quot;&gt;/gi, '<span class="$1">')
+      .replace(/&lt;\/span&gt;/gi, "</span>");
+  }
+  function renderCopy(siteCopy = {}) {
+    $$("[data-copy]").forEach(element => {
+      const value = siteCopy[element.dataset.copy];
+      if (["heroTitle", "aboutTitle", "projectsTitle", "learningTitle", "contactTitle"].includes(element.dataset.copy)) {
+        renderRichText(element, value);
+      } else {
+        element.textContent = typeof value === "string" ? value : "";
+      }
+    });
+    const principles = Array.isArray(siteCopy.principles) ? siteCopy.principles : [];
+    $("#principles-list").innerHTML = principles.map((principle, index) =>
+      `<div><span>${String(index + 1).padStart(2, "0")}</span> ${escapeHTML(principle)}</div>`
+    ).join("");
+    const groups = Array.isArray(siteCopy.toolGroups) ? siteCopy.toolGroups : [];
+    $("#toolkit-list").innerHTML = `${groups.map(group =>
+      `<div class="tool-group"><h3>${escapeHTML(group.title || "")}</h3><div class="pills">${(Array.isArray(group.items) ? group.items : []).map(item => `<span>${escapeHTML(item)}</span>`).join("")}</div></div>`
+    ).join("")}<div class="learning-note"><span class="gold">✳</span> <span data-copy="learningNote">${escapeHTML(siteCopy.learningNote || "")}</span></div>`;
+  }
+  function renderContent(saved) {
+    const content = saved && typeof saved === "object" ? saved : {};
+    activeProfilePhotos = Array.isArray(content.profilePhotos) ? content.profilePhotos : [];
+    renderCopy(content.siteCopy || {});
+    const heroLead = $("[data-copy='heroLead']");
+    if (heroLead) heroLead.textContent = content.siteCopy?.heroLead || "";
     const heroImage = safeImage(content.heroImage || "");
     const heroVisual = $(".hero-visual");
     const heroImageElement = $("#hero-display-image");
@@ -217,14 +199,15 @@
     }
     renderProfilePhotos();
 
-    renderProjects(content.projects);
-    const email = String(content.contact.email || defaults.contact.email).trim();
-    const emailPath = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : defaults.contact.email;
-    $("#contact-message").textContent = content.contact.message || defaults.contact.message;
-    $("#contact-email").href = `mailto:${emailPath}?subject=Hello%20Bhawishya`;
-    $("#contact-address").href = `mailto:${emailPath}`;
+    renderProjects(Array.isArray(content.projects) ? content.projects : []);
+    const contact = content.contact && typeof content.contact === "object" ? content.contact : {};
+    const email = String(contact.email || "").trim();
+    const emailPath = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "";
+    $("#contact-message").textContent = contact.message || "";
+    $("#contact-email").href = emailPath ? `mailto:${emailPath}?subject=Hello` : "#";
+    $("#contact-address").href = emailPath ? `mailto:${emailPath}` : "#";
     $("#contact-address").textContent = emailPath;
-    $("#social-links").innerHTML = content.links.map(link => {
+    $("#social-links").innerHTML = (Array.isArray(content.links) ? content.links : []).map(link => {
       const href = safeLink(link.url || "");
       return link.label && href
         ? `<a href="${escapeHTML(href)}" target="_blank" rel="noopener noreferrer">${escapeHTML(link.label)} <span aria-hidden="true">↗</span></a>`
@@ -293,16 +276,18 @@
     }
   });
 
-  renderContent();
   if (!window.supabase?.createClient) {
-    console.warn("Supabase client unavailable; displaying the built-in portfolio content.");
+    console.error("Supabase client unavailable; portfolio content was not loaded.");
     return;
   }
   const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
   void client.from(CONTENT_TABLE).select("content").eq("id", "published").maybeSingle()
     .then(({data, error}) => {
       if (error) throw error;
-      if (data?.content && typeof data.content === "object") renderContent(data.content);
+      if (!data?.content || typeof data.content !== "object") {
+        throw new Error("Published portfolio content is missing from the database.");
+      }
+      renderContent(data.content);
     })
-    .catch(error => console.warn("Could not load published portfolio content; displaying defaults.", error));
+    .catch(error => console.error("Could not load published portfolio content.", error));
 })();
