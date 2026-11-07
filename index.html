@@ -88,8 +88,9 @@
         <div class="actions"><a class="btn btn-gold" href="#projects">Explore projects <span>↘</span></a><a class="btn btn-outline" href="#about">A little about me</a></div>
         <div class="hero-caption"><span>CURIOUS BY NATURE</span><i></i><span>BUILDING IN PUBLIC, ONE STEP AT A TIME</span></div>
       </div>
-      <div class="hero-visual" aria-label="Abstract gold geometric artwork">
+      <div class="hero-visual" aria-label="Featured home image">
         <div class="halo halo-one"></div><div class="halo halo-two"></div><div class="halo halo-three"></div>
+        <img class="hero-display-image" id="hero-display-image" alt="Featured image" hidden>
         <div class="monogram"><img class="monogram-logo" src="logo.gif" alt=""><small>LEARN / BUILD / REPEAT</small></div>
         <div class="floating-note note-top"><span class="note-star">✳</span><span>Ideas into interfaces</span></div>
         <div class="floating-note note-bottom"><span class="live-dot"></span><span>Currently learning</span><b>01</b></div>
@@ -112,7 +113,7 @@
 
     <section class="projects wrap section" id="projects">
       <div class="section-heading"><div><div class="kicker">02 / PROJECTS & IDEAS</div><h2>What I'm working on<span class="gold">.</span></h2></div><p>A snapshot of my interests across web development, AI, and digital products.</p></div>
-      <div class="project-grid">
+      <div class="project-grid" id="project-grid">
         <article class="project-card">
           <div class="project-art astro"><span class="art-label">JYOTISHA × ENGINEERING</span><span class="art-number">01</span><div class="planet"></div><div class="planet-ring"></div><div class="art-word">AstroGPT<span>✳</span></div></div>
           <div class="project-body"><div class="project-meta">WEB PROJECT · INTERACTIVE EXPERIENCE</div><div class="project-title"><h3>AstroGPT</h3><a href="https://astro-gpt-rho.vercel.app" target="_blank" rel="noreferrer" aria-label="Visit AstroGPT">↗</a></div><p>An educational Jyotisha-inspired web experience combining traditional interpretations with a modern interface and calculation-focused exploration.</p><div class="tags"><span>Web Development</span><span>UI Design</span><span>Research</span></div></div>
@@ -146,7 +147,7 @@
     </section>
 
     <section class="contact wrap" id="contact">
-      <div class="contact-box"><div class="contact-orb"></div><div class="kicker">04 / LET'S CONNECT</div><h2>Good ideas start<br>with a <span class="gold-text">conversation.</span></h2><p>Have a project idea, a suggestion, or an opportunity to learn and collaborate? I'd be glad to hear from you.</p><a class="btn btn-gold" href="mailto:sooryavanshibhawishya@gmail.com?subject=Hello%20Bhawishya">Get in touch <span>↗</span></a><small>Before publishing, replace YOUR_EMAIL_HERE in this page with your email address.</small></div>
+      <div class="contact-box"><div class="contact-orb"></div><div class="kicker">04 / LET'S CONNECT</div><h2>Good ideas start<br>with a <span class="gold-text">conversation.</span></h2><p id="contact-message">Have a project idea, a suggestion, or an opportunity to learn and collaborate? I'd be glad to hear from you.</p><a class="btn btn-gold" id="contact-email" href="mailto:sooryavanshibhawishya@gmail.com?subject=Hello%20Bhawishya">Get in touch <span>↗</span></a><a class="contact-address" id="contact-address" href="mailto:sooryavanshibhawishya@gmail.com">sooryavanshibhawishya@gmail.com</a><div class="social-links" id="social-links" aria-label="Social links"></div></div>
     </section>
   </main>
 
