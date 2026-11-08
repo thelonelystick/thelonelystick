@@ -3,7 +3,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
   "rewrites": [
-    {"source": "/domains/:slug", "destination": "/index.html"},
-    {"source": "/welcome", "destination": "/index.html"}
+    {"source": "/domains/:slug", "destination": "/"},
+    {"source": "/welcome", "destination": "/"}
   ]
 }
