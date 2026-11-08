@@ -46,11 +46,15 @@
 
   function pathForThread(anchor, domain) {
     const length = clamp(domain.threadLength, 20, 180);
-    const direction = (Number(domain.position?.x) || 50) > 50 ? -1 : 1;
-    const sway = Math.min(42, length * 0.22) * direction;
-    const firstX = anchor.x + sway;
-    const secondX = anchor.x - sway * 0.35;
-    return `M${anchor.x.toFixed(1)} 0 C${firstX.toFixed(1)} ${(anchor.y * 0.34).toFixed(1)} ${secondX.toFixed(1)} ${(anchor.y * 0.78).toFixed(1)} ${anchor.x.toFixed(1)} ${anchor.y.toFixed(1)}`;
+    const seed = Array.from(String(domain.id || domain.slug || "")).reduce(
+      (value, character) => (value * 31 + character.charCodeAt(0)) >>> 0, 7
+    );
+    const direction = seed % 2 ? 1 : -1;
+    const sway = Math.min(46, length * 0.24) * direction;
+    const smallBend = ((seed >>> 3) % 17) - 8;
+    const middleY = anchor.y * (0.48 + ((seed >>> 8) % 13) / 100);
+    const middleX = anchor.x + sway * 0.55 + smallBend;
+    return `M${anchor.x.toFixed(1)} 0 C${(anchor.x + smallBend * 0.25).toFixed(1)} ${(anchor.y * 0.2).toFixed(1)} ${(anchor.x + sway * 0.9).toFixed(1)} ${(anchor.y * 0.36).toFixed(1)} ${middleX.toFixed(1)} ${middleY.toFixed(1)} C${(middleX + sway * 0.28).toFixed(1)} ${(middleY + (anchor.y - middleY) * 0.3).toFixed(1)} ${(anchor.x - sway * 0.16).toFixed(1)} ${(anchor.y * 0.82).toFixed(1)} ${anchor.x.toFixed(1)} ${anchor.y.toFixed(1)}`;
   }
 
   function render({canvas, svg, cards, list, web, domains, pathForDomain, iconForDomain, includeUnpublished = false, accessibleListId = "domain-accessible-list"}) {
