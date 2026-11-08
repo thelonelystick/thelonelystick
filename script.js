@@ -6,6 +6,11 @@
   const SUPABASE_PUBLISHABLE_KEY = "sb_publishable__mdO3XEbIwSJDnGXyqSlFg_g7TxWpSF";
   const CONTENT_TABLE = "portfolio_content";
   const domainRoute = window.location.pathname.match(/^\/domains\/([a-z0-9][a-z0-9-]*)\/?$/i);
+  const welcomeRoute = /^\/welcome\/?$/i.test(window.location.pathname);
+  if (welcomeRoute) {
+    document.documentElement.classList.add("is-welcome-route");
+    document.title = "Welcome | thelonelystick";
+  }
   if (domainRoute) {
     document.documentElement.classList.add("is-domain-route");
     const domainPage = $("#domain-page");
@@ -218,7 +223,7 @@
   function renderOrganicWeb(web, projects, links) {
     const section = $("#web");
     const domains = Array.isArray(web?.domains) ? web.domains : [];
-    section.hidden = web?.enabled === false || !domains.some(domain => WebRenderer.publishedAndVisible(domain));
+    section.hidden = !welcomeRoute && (web?.enabled === false || !domains.some(domain => WebRenderer.publishedAndVisible(domain)));
     $("#web-title").textContent = web?.sectionTitle || "Welcome to my web";
     $("#web-subtitle").textContent = web?.sectionSubtitle || "";
     const canvas = $("#organic-web-canvas");
@@ -243,53 +248,15 @@
       domains,
       pathForDomain: domain => `/domains/${encodeURIComponent(domain.slug)}`
     });
+    if (welcomeRoute) {
+      $("#web-entrance").hidden = true;
+      canvas.hidden = false;
+      canvas.classList.add("is-revealed");
+      navigation.hidden = false;
+    }
     renderDomainPage(web, projects, links);
   }
-
-  let webRevealTimer;
-  function setWebRevealed(revealed, animate = true) {
-    const entrance = $("#web-entrance");
-    const canvas = $("#organic-web-canvas");
-    const navigation = $("#domain-accessible-nav");
-    const reveal = $("#web-reveal-control");
-    const collapse = $("#web-collapse-control");
-    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    const shouldAnimate = animate && !reduceMotion;
-    window.clearTimeout(webRevealTimer);
-    if (revealed && shouldAnimate && !canvas.hidden) return;
-    if (revealed && shouldAnimate) {
-      entrance.hidden = false;
-      entrance.classList.add("is-opening");
-      reveal.hidden = true;
-      collapse.hidden = true;
-      webRevealTimer = window.setTimeout(() => setWebRevealed(true, false), 760);
-      return;
-    }
-    entrance.classList.remove("is-opening");
-    entrance.hidden = revealed;
-    canvas.hidden = !revealed;
-    navigation.hidden = !revealed;
-    reveal.setAttribute("aria-expanded", String(revealed));
-    reveal.hidden = revealed;
-    collapse.hidden = !revealed;
-    canvas.classList.toggle("is-revealed", revealed);
-    if (revealed) {
-      const saved = window.__portfolioContent?.web;
-      if (saved) WebRenderer.render({
-        canvas, svg: $("#organic-web-threads"), cards: $("#organic-web-domains"),
-        list: $("#domain-accessible-list"), web: saved, pathForDomain: domain => `/domains/${encodeURIComponent(domain.slug)}`
-      });
-    } else if ($("#web-collapse-control") === document.activeElement) {
-      $("#web-enter").focus();
-    }
-  }
-  $("#web-enter").addEventListener("click", () => setWebRevealed(true));
-  $("#web-skip").addEventListener("click", () => setWebRevealed(true, false));
-  $("#web-reveal-control").addEventListener("click", () => setWebRevealed(true, false));
-  $("#web-collapse-control").addEventListener("click", () => setWebRevealed(false, false));
-  window.matchMedia?.("(prefers-reduced-motion: reduce)").addEventListener?.("change", event => {
-    if (event.matches) $("#web-motion-note").textContent = "Reduced motion is enabled; the web opens without animation.";
-  });
+  $("#web-enter").addEventListener("click", () => window.location.assign("/welcome"));
 
   function renderRichText(element, value) {
     if (!element) return;

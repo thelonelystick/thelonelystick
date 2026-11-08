@@ -61,7 +61,7 @@
 
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script>if (/^\/domains\//.test(location.pathname)) { const base = document.createElement("base"); base.href = "/"; document.head.append(base); }</script>
+  <script>if (/^\/(?:domains\/|welcome\/?$)/.test(location.pathname)) { const base = document.createElement("base"); base.href = "/"; document.head.append(base); }</script>
   <meta name="theme-color" content="#090909">
   <link rel="icon" type="image/gif" href="logo.gif">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -146,20 +146,15 @@
         <div class="web-entrance-panel web-entrance-panel-light"><span>MY CREATIVE DOMAINS</span></div>
         <div class="web-entrance-panel web-entrance-panel-dark"><span>EXPLORE WHAT I CREATE</span></div>
         <h2 class="web-entrance-title">Welcome to my web</h2>
-        <button class="web-enter" id="web-enter" type="button" aria-controls="organic-web-canvas">Enter <span aria-hidden="true">↘</span></button>
-        <button class="web-skip" id="web-skip" type="button" aria-controls="organic-web-canvas">Skip animation</button>
+        <button class="web-enter" id="web-enter" type="button" aria-controls="organic-web-canvas">Shoot <span aria-hidden="true">↘</span></button>
       </div>
-      <div class="web-controls">
-        <button class="web-reveal-control" id="web-reveal-control" type="button" aria-expanded="false" aria-controls="organic-web-canvas">Reveal the web</button>
-        <button class="web-collapse-control" id="web-collapse-control" type="button" hidden>Collapse web</button>
-        <span id="web-motion-note" class="visually-hidden">The web is shown without animation.</span>
-      </div>
-      <div class="section-heading"><div><div class="kicker">MY CREATIVE DOMAINS</div><h2 id="web-title">Welcome to my web</h2></div><p id="web-subtitle"></p></div>
+      <h2 class="visually-hidden" id="web-title">Welcome to my web</h2>
+      <p class="visually-hidden" id="web-subtitle"></p>
       <div class="organic-web-canvas" id="organic-web-canvas" aria-label="Organic web of published domains" hidden>
         <svg class="organic-web-threads" id="organic-web-threads" aria-hidden="true" focusable="false" preserveAspectRatio="none" viewBox="0 0 1000 700"></svg>
         <div class="organic-web-domains" id="organic-web-domains"></div>
       </div>
-      <nav class="domain-accessible-nav" id="domain-accessible-nav" aria-label="All published web domains" hidden><h3>Explore all domains</h3><ol id="domain-accessible-list"></ol></nav>
+      <nav class="domain-accessible-nav visually-hidden" id="domain-accessible-nav" aria-label="All published web domains" hidden><h3>Explore all domains</h3><ol id="domain-accessible-list"></ol></nav>
     </section>
 
     <section class="projects wrap section" id="projects">
