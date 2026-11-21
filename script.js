@@ -2,8 +2,6 @@
   "use strict";
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-  const SUPABASE_URL = "https://lltnosossejymzvddeee.supabase.co";
-  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable__mdO3XEbIwSJDnGXyqSlFg_g7TxWpSF";
   const CONTENT_TABLE = "portfolio_content";
   const domainRoute = window.location.pathname.match(/^\/domains\/([a-z0-9][a-z0-9-]*)\/?$/i);
   const welcomeRoute = /^\/welcome\/?$/i.test(window.location.pathname);
@@ -322,24 +320,27 @@
     }).join("");
   }
 
-  if (!window.supabase?.createClient) {
-    console.error("Supabase client unavailable; portfolio content was not loaded.");
-    return;
+  async function loadPublishedContent() {
+    if (!window.supabase?.createClient) {
+      console.error("Supabase client unavailable; portfolio content was not loaded.");
+      return;
+    }
+    const response = await fetch("/api/config", {headers: {"Accept": "application/json"}});
+    if (!response.ok) throw new Error("Runtime configuration is unavailable.");
+    const config = await response.json();
+    const client = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey);
+    const {data, error} = await client.from(CONTENT_TABLE).select("content").eq("id", "published").maybeSingle();
+    if (error) throw error;
+    if (!data?.content || typeof data.content !== "object") {
+      throw new Error("Published portfolio content is missing from the database.");
+    }
+    renderContent(data.content);
   }
-  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-  void client.from(CONTENT_TABLE).select("content").eq("id", "published").maybeSingle()
-    .then(({data, error}) => {
-      if (error) throw error;
-      if (!data?.content || typeof data.content !== "object") {
-        throw new Error("Published portfolio content is missing from the database.");
-      }
-      renderContent(data.content);
-    })
-    .catch(error => {
-      console.error("Could not load published portfolio content.", error);
-      if (domainRoute) {
-        document.title = "Domain unavailable | thelonelystick";
-        $("#domain-page-content").innerHTML = `<h1>Domain unavailable</h1><p>This page could not be loaded right now.</p><a class="domain-back-link" href="/#web">Return to the web</a>`;
-      }
-    });
+  void loadPublishedContent().catch(error => {
+    console.error("Could not load published portfolio content.", error);
+    if (domainRoute) {
+      document.title = "Domain unavailable | thelonelystick";
+      $("#domain-page-content").innerHTML = `<h1>Domain unavailable</h1><p>This page could not be loaded right now.</p><a class="domain-back-link" href="/#web">Return to the web</a>`;
+    }
+  });
 })();

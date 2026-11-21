@@ -16,14 +16,20 @@ drop policy if exists "Portfolio owner can insert published portfolio" on public
 create policy "Portfolio owner can insert published portfolio"
   on public.portfolio_content for insert
   to authenticated
-  with check (id = 'published' and (select auth.jwt() ->> 'email') = 'sooryavanshibhawishya@gmail.com');
+  with check (
+    id = 'published'
+    and (select auth.jwt() -> 'app_metadata' ->> 'role') = 'portfolio_admin'
+  );
 
 drop policy if exists "Portfolio owner can update published portfolio" on public.portfolio_content;
 create policy "Portfolio owner can update published portfolio"
   on public.portfolio_content for update
   to authenticated
-  using ((select auth.jwt() ->> 'email') = 'sooryavanshibhawishya@gmail.com')
-  with check (id = 'published' and (select auth.jwt() ->> 'email') = 'sooryavanshibhawishya@gmail.com');
+  using ((select auth.jwt() -> 'app_metadata' ->> 'role') = 'portfolio_admin')
+  with check (
+    id = 'published'
+    and (select auth.jwt() -> 'app_metadata' ->> 'role') = 'portfolio_admin'
+  );
 
 grant select on public.portfolio_content to anon, authenticated;
 grant insert, update on public.portfolio_content to authenticated;
@@ -38,7 +44,7 @@ values (
     "heroImage": "",
     "profilePhotos": [],
     "contact": {
-      "email": "sooryavanshibhawishya@gmail.com",
+      "email": "",
       "message": "Have a project idea, a suggestion, or an opportunity to learn and collaborate? I'd be glad to hear from you."
     },
     "links": [
@@ -118,7 +124,7 @@ create policy "Portfolio owner can upload portfolio media"
   to authenticated
   with check (
     bucket_id = 'portfolio-media'
-    and (select auth.jwt() ->> 'email') = 'sooryavanshibhawishya@gmail.com'
+    and (select auth.jwt() -> 'app_metadata' ->> 'role') = 'portfolio_admin'
   );
 
 drop policy if exists "Portfolio owner can update portfolio media" on storage.objects;
@@ -127,11 +133,11 @@ create policy "Portfolio owner can update portfolio media"
   to authenticated
   using (
     bucket_id = 'portfolio-media'
-    and (select auth.jwt() ->> 'email') = 'sooryavanshibhawishya@gmail.com'
+    and (select auth.jwt() -> 'app_metadata' ->> 'role') = 'portfolio_admin'
   )
   with check (
     bucket_id = 'portfolio-media'
-    and (select auth.jwt() ->> 'email') = 'sooryavanshibhawishya@gmail.com'
+    and (select auth.jwt() -> 'app_metadata' ->> 'role') = 'portfolio_admin'
   );
 
 drop policy if exists "Portfolio owner can delete portfolio media" on storage.objects;
@@ -140,5 +146,5 @@ create policy "Portfolio owner can delete portfolio media"
   to authenticated
   using (
     bucket_id = 'portfolio-media'
-    and (select auth.jwt() ->> 'email') = 'sooryavanshibhawishya@gmail.com'
+    and (select auth.jwt() -> 'app_metadata' ->> 'role') = 'portfolio_admin'
   );

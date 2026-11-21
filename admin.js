@@ -2,10 +2,6 @@
   "use strict";
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-  const SUPABASE_URL = "https://lltnosossejymzvddeee.supabase.co";
-  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable__mdO3XEbIwSJDnGXyqSlFg_g7TxWpSF";
-  const ADMIN_EMAIL = "sooryavanshibhawishya@gmail.com";
-  const ADMIN_REDIRECT_URL = "https://thelonelystick.vercel.app/admin";
   const BUCKET = "portfolio-media";
   const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
   const slugify = value => String(value || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -224,7 +220,7 @@
       if (!hasSavedWebRecord) {
         setStatus("#domain-publish-status", "No published web configuration exists; the initial eight domains are staged as a draft. Publish domains to make them live.");
       }
-      $("#owner-email").textContent = ADMIN_EMAIL;
+      $("#owner-email").textContent = "Authorized session";
       setStatus("#content-backend-status", "Connected · Published content");
       return content;
     })();
@@ -1133,16 +1129,16 @@
     authGate.hidden = false;
     authStatus.textContent = message;
   }
-  function showAdmin(email) {
+  function showAdmin() {
     authGate.hidden = true;
     adminShell.hidden = false;
-    $("#owner-email").textContent = email;
+    $("#owner-email").textContent = "Authorized session";
     void loadPublishedContent().catch(error => console.error(error));
   }
   async function authorize(session) {
-    const email = session?.user?.email?.trim().toLowerCase();
-    if (email === ADMIN_EMAIL) {
-      showAdmin(email);
+    const role = session?.user?.app_metadata?.role;
+    if (role === "portfolio_admin") {
+      showAdmin();
       return;
     }
     showSignIn(session?.user ? "This Google account is not authorized for this admin page." : "");
@@ -1158,13 +1154,17 @@
       signInButton.disabled = true;
       return;
     }
-    authClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+    const response = await fetch("/api/config", {headers: {"Accept": "application/json"}});
+    if (!response.ok) throw new Error("Runtime configuration is unavailable.");
+    const config = await response.json();
+    authClient = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey);
     let checkingInitialSession = true;
     signInButton.addEventListener("click", async () => {
       signInButton.disabled = true;
       authStatus.textContent = "Redirecting to Google…";
       try {
-        const {error} = await authClient.auth.signInWithOAuth({provider: "google", options: {redirectTo: ADMIN_REDIRECT_URL}});
+        const redirectTo = `${window.location.origin}/admin`;
+        const {error} = await authClient.auth.signInWithOAuth({provider: "google", options: {redirectTo}});
         if (error) throw error;
       } catch (error) {
         authStatus.textContent = `Google sign-in failed: ${error.message}`;
