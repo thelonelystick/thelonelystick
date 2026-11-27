@@ -3,6 +3,7 @@
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const CONTENT_TABLE = "portfolio_content";
+  let supabaseClient;
   const domainRoute = window.location.pathname.match(/^\/domains\/([a-z0-9][a-z0-9-]*)\/?$/i);
   const welcomeRoute = /^\/welcome\/?$/i.test(window.location.pathname);
   if (welcomeRoute) {
@@ -20,6 +21,10 @@
 
   const escapeHTML = value => String(value ?? "").replace(/[&<>"']/g, character =>
     ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[character]));
+  const plainTextFromLegacy = value => String(value || "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/?span\b[^>]*>/gi, "")
+    .replace(/<[^>]*>/g, "");
 
   const menuToggle = $(".menu-toggle");
   const nav = $(".nav");
@@ -152,7 +157,7 @@
   };
 
   function renderProjects(projects) {
-    const visible = projects.filter(project => project.visible !== false);
+    const visible = projects.filter(project => project.visible !== false && project.showOnHome !== false);
     const projectGrid = $("#project-grid");
     projectGrid.dataset.count = String(visible.length);
     projectGrid.innerHTML = visible.map(projectMarkup).join("");
@@ -196,26 +201,36 @@
     const projectIds = new Set(Array.isArray(domain.featuredProjectIds) ? domain.featuredProjectIds : []);
     const socialIds = new Set(Array.isArray(domain.socialLinkIds) ? domain.socialLinkIds : []);
     const featuredProjects = projects.filter((project, index) =>
-      projectIds.has(project.id || `project-${slugify(project.title) || index + 1}`) && project.visible !== false);
+      (projectIds.has(project.id || `project-${slugify(project.title) || index + 1}`) && project.visible !== false) ||
+      (Array.isArray(project.domainIds) && project.domainIds.includes(domain.id)));
     const socialLinks = links.filter((link, index) =>
-      socialIds.has(link.id || `social-${slugify(link.label) || index + 1}`) && safeLink(link.url || ""));
+      (socialIds.has(link.id || `social-${slugify(link.label) || index + 1}`) ||
+        (Array.isArray(link.domainIds) && link.domainIds.includes(domain.id))) && safeLink(link.url || ""));
     const externalUrl = safeLink(domain.url || "");
     const articles = Array.isArray(domain.articles) ? domain.articles : [];
     const media = Array.isArray(domain.media) ? domain.media : [];
     const descriptionMeta = $('meta[name="description"]');
     if (descriptionMeta) descriptionMeta.content = domain.description;
-    page.innerHTML = `<span class="kicker">${escapeHTML(domain.themePresetId || domain.icon || "DOMAIN")}</span><h1>${escapeHTML(domain.title)}</h1><section><h2>Introduction</h2><p>${escapeHTML(domain.description)}</p>${domain.pageContent ? `<div class="domain-page-copy">${escapeHTML(domain.pageContent)}</div>` : ""}</section>${featuredProjects.length ? `<section><h2>Featured projects</h2><ul>${featuredProjects.map(project => {
+    const linksSection = socialLinks.length ? `<section class="domain-links"><h2>Links</h2><ul>${socialLinks.map(link =>
+      `<li><a href="${escapeHTML(safeLink(link.url || ""))}" target="_blank" rel="noopener noreferrer">${escapeHTML(link.label)}</a></li>`
+    ).join("")}</ul></section>` : "";
+    const projectsSection = featuredProjects.length ? `<section><h2>Projects</h2><ul>${featuredProjects.map(project => {
       const url = safeLink(project.url || "");
       const title = escapeHTML(project.title);
       return `<li>${url ? `<a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">${title}</a>` : title} — ${escapeHTML(project.description)}</li>`;
-    }).join("")}</ul></section>` : ""}${articles.length ? `<section><h2>Articles</h2><ul>${articles.map(article => {
+    }).join("")}</ul></section>` : "";
+    const articlesSection = articles.length ? `<section><h2>Articles</h2><ul>${articles.map(article => {
       const title = escapeHTML(article?.title || "");
       const url = safeLink(article?.url || "");
       return title ? `<li>${url ? `<a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">${title}</a>` : title}${article.description ? ` — ${escapeHTML(article.description)}` : ""}</li>` : "";
-    }).join("")}</ul></section>` : ""}${media.length ? `<section><h2>Media</h2><div class="domain-media-grid">${media.map(item => {
+    }).join("")}</ul></section>` : "";
+    const mediaSection = media.length ? `<section><h2>Media</h2><div class="domain-media-grid">${media.map(item => {
       const url = safeImage(item?.url || "");
       return url ? `<figure><img src="${escapeHTML(url)}" alt="${escapeHTML(item.alt || item.title || domain.title)}" loading="lazy"><figcaption>${escapeHTML(item.title || item.alt || "")}</figcaption></figure>` : "";
-    }).join("")}</div></section>` : ""}${socialLinks.length ? `<section><h2>Social links</h2><ul>${socialLinks.map(link => `<li><a href="${escapeHTML(safeLink(link.url || ""))}" target="_blank" rel="noopener noreferrer">${escapeHTML(link.label)}</a></li>`).join("")}</ul></section>` : ""}${externalUrl ? `<section><h2>More</h2><a class="btn btn-gold" href="${escapeHTML(externalUrl)}" target="_blank" rel="noopener noreferrer">Visit ${escapeHTML(domain.title)} ↗</a></section>` : ""}${featuredProjects.length || articles.length || media.length || socialLinks.length || externalUrl || domain.pageContent ? "" : `<p class="domain-empty-state">More in this domain will appear here when it is ready.</p>`}`;
+    }).join("")}</div></section>` : "";
+    const moreSection = externalUrl ? `<section><h2>More</h2><a class="btn btn-gold" href="${escapeHTML(externalUrl)}" target="_blank" rel="noopener noreferrer">Visit ${escapeHTML(domain.title)} ↗</a></section>` : "";
+    const hasContent = featuredProjects.length || articles.length || media.length || socialLinks.length || externalUrl || domain.pageContent;
+    page.innerHTML = `<span class="kicker">${escapeHTML(domain.themePresetId || domain.icon || "DOMAIN")}</span><h1>${escapeHTML(domain.title)}</h1>${linksSection}<section><h2>Introduction</h2><p>${escapeHTML(domain.description)}</p>${domain.pageContent ? `<div class="domain-page-copy">${escapeHTML(domain.pageContent)}</div>` : ""}</section>${projectsSection}${articlesSection}${mediaSection}${moreSection}${hasContent ? "" : `<p class="domain-empty-state">More in this domain will appear here when it is ready.</p>`}`;
   }
 
   function renderOrganicWeb(web, projects, links) {
@@ -263,10 +278,16 @@
       .replace(/&lt;span class=&quot;(gold-text|gold|dim)&quot;&gt;/gi, '<span class="$1">')
       .replace(/&lt;\/span&gt;/gi, "</span>");
   }
+  function renderPlainText(element, value) {
+    if (!element) return;
+    element.innerHTML = escapeHTML(plainTextFromLegacy(value)).replace(/\r\n?|\n/g, "<br>");
+  }
   function renderCopy(siteCopy = {}) {
     $$("[data-copy]").forEach(element => {
       const value = siteCopy[element.dataset.copy];
-      if (["heroTitle", "aboutTitle", "projectsTitle", "learningTitle", "contactTitle"].includes(element.dataset.copy)) {
+      if (element.dataset.copy === "heroTitle") {
+        renderPlainText(element, value);
+      } else if (["aboutTitle", "projectsTitle", "learningTitle", "contactTitle"].includes(element.dataset.copy)) {
         renderRichText(element, value);
       } else {
         element.textContent = typeof value === "string" ? value : "";
@@ -287,7 +308,7 @@
     activeProfilePhotos = Array.isArray(content.profilePhotos) ? content.profilePhotos : [];
     renderCopy(content.siteCopy || {});
     const heroLead = $("[data-copy='heroLead']");
-    if (heroLead) heroLead.textContent = content.siteCopy?.heroLead || "";
+    if (heroLead) heroLead.textContent = plainTextFromLegacy(content.siteCopy?.heroLead);
     activeHeroImage = safeImage(content.heroImage || "");
     const heroImageElement = $("#hero-display-image");
     heroImageElement.onerror = () => {
@@ -312,7 +333,7 @@
     const whatsappLinkNumber = whatsappDigits.length === 10 ? `91${whatsappDigits}` : whatsappDigits;
     whatsapp.hidden = !/^\d{11,15}$/.test(whatsappLinkNumber);
     whatsapp.href = whatsapp.hidden ? "#" : `https://wa.me/${whatsappLinkNumber}`;
-    $("#social-links").innerHTML = (Array.isArray(content.links) ? content.links : []).map(link => {
+    $("#social-links").innerHTML = (Array.isArray(content.links) ? content.links : []).filter(link => link.showOnHome !== false).map(link => {
       const href = safeLink(link.url || "");
       return link.label && href
         ? `<a href="${escapeHTML(href)}" target="_blank" rel="noopener noreferrer">${escapeHTML(link.label)} <span aria-hidden="true">↗</span></a>`
@@ -328,14 +349,48 @@
     const response = await fetch("/api/config", {headers: {"Accept": "application/json"}});
     if (!response.ok) throw new Error("Runtime configuration is unavailable.");
     const config = await response.json();
-    const client = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey);
-    const {data, error} = await client.from(CONTENT_TABLE).select("content").eq("id", "published").maybeSingle();
+    supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey);
+    const {data, error} = await supabaseClient.from(CONTENT_TABLE).select("content").eq("id", "published").maybeSingle();
     if (error) throw error;
     if (!data?.content || typeof data.content !== "object") {
       throw new Error("Published portfolio content is missing from the database.");
     }
     renderContent(data.content);
   }
+  $("#contact-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const status = $("#contact-form-status");
+    const submit = $("button[type='submit']", form);
+    if (!supabaseClient) {
+      status.textContent = "The message service is unavailable. Please try again later or use the email link.";
+      status.classList.add("is-error");
+      return;
+    }
+    submit.disabled = true;
+    status.textContent = "Sending your message…";
+    status.classList.remove("is-error");
+    try {
+      const {error} = await supabaseClient.from("contact_messages").insert({
+        name: $("#contact-name").value.trim(),
+        email: $("#contact-sender-email").value.trim(),
+        message: $("#contact-message-body").value.trim()
+      });
+      if (error) {
+        if (["PGRST205", "42P01"].includes(error.code)) {
+          throw new Error("The inbox database is not set up yet. Please use the email link for now.");
+        }
+        throw new Error(`Could not send your message: ${error.message}`);
+      }
+      form.reset();
+      status.textContent = "Message sent. Thank you for reaching out!";
+    } catch (error) {
+      status.textContent = error.message;
+      status.classList.add("is-error");
+    } finally {
+      submit.disabled = false;
+    }
+  });
   void loadPublishedContent().catch(error => {
     console.error("Could not load published portfolio content.", error);
     if (domainRoute) {

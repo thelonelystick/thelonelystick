@@ -39,8 +39,8 @@
     const mobile = width <= 800;
     const x = mobile ? 55 : clamp(domain.position?.x, 12, 88);
     const y = mobile
-      ? 8 + ((index + 1) / (count + 1)) * 84
-      : clamp(domain.position?.y, 8, 90);
+      ? 22 + ((index + 1) / (count + 1)) * 73
+      : 36 + clamp(domain.position?.y, 0, 100) * 0.54;
     return {x: width * x / 100, y: height * y / 100};
   }
 
@@ -63,6 +63,26 @@
         list.id !== accessibleListId || !navigation || !navigation.querySelector("h3") ||
         (accessibleListId === "domain-accessible-list" && navigation.id !== "domain-accessible-nav")) {
       throw new Error("The organic web needs its labelled navigation landmark and ordered list.");
+    }
+    if (!canvas.querySelector(".web-atmosphere")) {
+      const atmosphere = document.createElement("div");
+      atmosphere.className = "web-atmosphere";
+      atmosphere.setAttribute("aria-hidden", "true");
+      canvas.insertBefore(atmosphere, svg);
+    }
+    if (!canvas.querySelector(".web-fog")) {
+      const fog = document.createElement("div");
+      fog.className = "web-fog";
+      fog.setAttribute("aria-hidden", "true");
+      canvas.insertBefore(fog, svg);
+    }
+    if (!canvas.querySelector(".web-puppeteer")) {
+      const hand = document.createElement("img");
+      hand.className = "web-puppeteer";
+      hand.src = "/assets/organic-web-hand-cropped.png";
+      hand.alt = "";
+      hand.setAttribute("aria-hidden", "true");
+      canvas.insertBefore(hand, svg);
     }
     const visibleDomains = (Array.isArray(domains) ? domains : Array.isArray(web?.domains) ? web.domains : [])
       .filter(domain => domain && domain.hidden !== true && (includeUnpublished || domain.published !== false))

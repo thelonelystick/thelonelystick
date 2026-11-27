@@ -132,6 +132,10 @@
 
   const esc = value => String(value ?? "").replace(/[&<>"']/g, character =>
     ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[character]));
+  const plainTextFromLegacy = value => String(value || "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/?span\b[^>]*>/gi, "")
+    .replace(/<[^>]*>/g, "");
   const isWebUrl = value => {
     try { return ["http:", "https:"].includes(new URL(value).protocol); }
     catch { return false; }
@@ -165,6 +169,7 @@
     $("#crumb").textContent = names[name][0];
     $("#page-title").textContent = names[name][1];
     $("#sidebar").classList.remove("open");
+    if (name === "inbox") void loadInbox();
   }
   $$(".side-link").forEach(button => button.addEventListener("click", () => view(button.dataset.view)));
   $$("[data-go]").forEach(button => button.addEventListener("click", () => view(button.dataset.go)));
@@ -268,8 +273,8 @@
   }
 
   function renderHome() {
-    $("#hero-title").value = content.siteCopy?.heroTitle || "";
-    $("#hero-lead").value = content.siteCopy?.heroLead || "";
+    $("#hero-title").value = plainTextFromLegacy(content.siteCopy?.heroTitle);
+    $("#hero-lead").value = plainTextFromLegacy(content.siteCopy?.heroLead);
     $("#hero-image-url").value = content.heroImage || "";
     const preview = $("#hero-image-preview");
     preview.src = content.heroImage || "";
@@ -323,12 +328,16 @@
       image: $("[data-project-image]", row).value.trim(),
       imagePath: row.dataset.imagePath || "",
       kind: $("[data-kind]", row).value,
-      visible: $("[data-visible]", row).checked
+      visible: selectedValues($("[data-project-placement]", row)).includes("@default"),
+      domainIds: selectedValues($("[data-project-placement]", row)).filter(id => id !== "@default")
     }));
   }
   function renderProjects() {
     $("#project-editor-list").innerHTML = content.projects.map((project, index) => {
       const tags = Array.isArray(project.tags) ? project.tags.join(", ") : "";
+      const domainIds = Array.isArray(project.domainIds) ? project.domainIds : [];
+      const showOnHome = project.visible !== false;
+      const placementOptions = renderPlacementOptions(domainIds, showOnHome);
       return `<article class="project-edit" data-project-id="${esc(project.id || "")}" data-image-path="${esc(project.imagePath || "")}">
         <div class="project-edit-head"><span>Project ${String(index + 1).padStart(2, "0")}</span><div class="card-order">
           <button type="button" class="order-card" data-move="-1" aria-label="Move ${esc(project.title)} up" ${index === 0 ? "disabled" : ""}>↑</button>
@@ -340,10 +349,10 @@
         <label for="project-meta-${index}">Category</label><input id="project-meta-${index}" data-meta maxlength="80" value="${esc(project.meta || "")}">
         <label for="project-tags-${index}">Tags (comma-separated)</label><input id="project-tags-${index}" data-tags maxlength="180" value="${esc(tags)}">
         <label for="project-url-${index}">Destination URL</label><input id="project-url-${index}" data-project-url type="url" value="${esc(project.url || "")}" placeholder="https://example.com">
+        <label for="project-domains-${index}">Show on (choose Default website and/or domains)</label><select id="project-domains-${index}" data-project-placement multiple size="4">${placementOptions}</select>
         <label for="project-image-${index}">Preview image URL</label><input id="project-image-${index}" data-project-image type="url" value="${esc(project.image || "")}" placeholder="https://example.com/preview.jpg">
         <img class="project-editor-preview" src="${esc(project.image || "")}" alt="${esc(project.title)} screenshot preview" ${project.image ? "" : "hidden"}>
         <label for="project-screenshot-${index}">Upload a project screenshot</label><input id="project-screenshot-${index}" data-screenshot type="file" accept="image/jpeg,image/png,image/webp,image/gif">
-        <label class="visibility-control"><input data-visible type="checkbox" ${project.visible === false ? "" : "checked"}> Show this project on the homepage</label>
         <input data-kind type="hidden" value="${esc(project.kind || "custom")}">
       </article>`;
     }).join("");
@@ -446,6 +455,22 @@
   const projectReferenceId = (project, index) => project.id || `project-${slugify(project.title) || index + 1}`;
   const socialReferenceId = (link, index) => link.id || `social-${slugify(link.label) || index + 1}`;
   const selectedValues = select => [...select.selectedOptions].map(option => option.value);
+  function renderPlacementOptions(domainIds = [], showOnHome = true) {
+    return [
+      `<option value="@default" ${showOnHome ? "selected" : ""}>Default website</option>`,
+      ...(content.web.domains || []).map(domain =>
+        `<option value="${esc(domain.id)}" ${domainIds.includes(domain.id) ? "selected" : ""}>${esc(domain.title)}</option>`)
+    ].join("");
+  }
+  function refreshPlacementChoices() {
+    $$(".project-edit [data-project-placement], .link-row [data-placement]").forEach(select => {
+      const selected = selectedValues(select);
+      select.innerHTML = renderPlacementOptions(
+        selected.filter(id => id !== "@default"),
+        selected.includes("@default")
+      );
+    });
+  }
   function renderDomains(domains) {
     if (!domains) {
       $("#web-enabled").checked = content.web.enabled !== false;
@@ -619,7 +644,7 @@
     if (!row) return;
     const bounds = previewCanvas.getBoundingClientRect();
     const x = Math.max(0, Math.min(100, draggedDomain.x + (event.clientX - draggedDomain.startX) / bounds.width * 100));
-    const y = Math.max(0, Math.min(100, draggedDomain.y + (event.clientY - draggedDomain.startY) / bounds.height * 100));
+    const y = Math.max(0, Math.min(100, draggedDomain.y + (event.clientY - draggedDomain.startY) / bounds.height * 100 / 0.54));
     $("[data-domain-x]", row).value = String(Math.round(x));
     $("[data-domain-y]", row).value = String(Math.round(y));
     updateDomainPreview();
@@ -792,6 +817,7 @@
       await publishContent(true);
       webDraftConnections = structuredClone(connections);
       renderDomains();
+      refreshPlacementChoices();
       setStatus("#domain-publish-status", message);
       toast("Web domains published");
     } catch (error) {
@@ -1032,6 +1058,65 @@
     $("#contact-whatsapp").value = content.contact.whatsapp || "";
     $("#contact-copy").value = content.contact.message;
   }
+  function renderInbox(messages) {
+    $("#inbox-list").innerHTML = messages.length ? messages.map(message => {
+      const read = Boolean(message.read_at);
+      const sentAt = new Date(message.created_at);
+      const date = Number.isNaN(sentAt.getTime()) ? "Date unavailable" : sentAt.toLocaleString();
+      return `<article class="inbox-message${read ? " is-read" : ""}" data-message-id="${esc(message.id)}">
+        <header><div><strong>${esc(message.name)}</strong><a href="mailto:${esc(message.email)}">${esc(message.email)}</a></div>
+          <time datetime="${esc(message.created_at)}">${esc(date)}</time></header>
+        <p>${esc(message.message)}</p>
+        <button class="button secondary" type="button" data-message-read="${read ? "false" : "true"}">${read ? "Mark unread" : "Mark read"}</button>
+      </article>`;
+    }).join("") : `<div class="empty"><b>✉</b><h3>No messages yet</h3><p>Messages submitted through the public contact form will appear here.</p></div>`;
+  }
+  async function loadInbox() {
+    if (!authClient) {
+      setStatus("#inbox-status", "Supabase is not initialized. Reload the admin page and try again.", true);
+      return;
+    }
+    if (!contentLoaded) {
+      try {
+        await loadPublishedContent();
+      } catch (error) {
+        setStatus("#inbox-status", error.message, true);
+        return;
+      }
+    }
+    setStatus("#inbox-status", "Loading messages…");
+    const {data, error} = await authClient.from("contact_messages")
+      .select("id, name, email, message, created_at, read_at")
+      .order("created_at", {ascending: false})
+      .limit(100);
+    if (error) {
+      const message = ["PGRST205", "42P01"].includes(error.code)
+        ? "Contact inbox table is missing. Run supabase/migrations/20261128000000_contact_inbox.sql, then reload."
+        : error.code === "42501"
+          ? "Supabase denied inbox access. Check that this account has the portfolio_admin role."
+          : `Could not load contact messages: ${error.message}`;
+      setStatus("#inbox-status", message, true);
+      return;
+    }
+    const messages = Array.isArray(data) ? data : [];
+    renderInbox(messages);
+    setStatus("#inbox-status", `Inbox connected · ${messages.length} message${messages.length === 1 ? "" : "s"} (latest 100)`);
+  }
+  $("#inbox-list").addEventListener("click", async event => {
+    const button = event.target.closest("[data-message-read]");
+    const row = button?.closest("[data-message-id]");
+    if (!button || !row) return;
+    button.disabled = true;
+    const readAt = button.dataset.messageRead === "true" ? new Date().toISOString() : null;
+    const {error} = await authClient.from("contact_messages")
+      .update({read_at: readAt}).eq("id", row.dataset.messageId);
+    if (error) {
+      setStatus("#inbox-status", `Could not update message: ${error.message}`, true);
+      button.disabled = false;
+      return;
+    }
+    await loadInbox();
+  });
   $("#contact-form").addEventListener("submit", async event => {
     event.preventDefault();
     const previous = content.contact;
@@ -1052,7 +1137,15 @@
   });
   function renderLinks() {
     $("#links-list").innerHTML = links.map((link, index) =>
-      `<div class="link-row"><input aria-label="Link label" data-label="${index}" value="${esc(link.label)}" placeholder="Label" maxlength="40"><input aria-label="Link URL" data-url="${index}" type="url" value="${esc(link.url)}" placeholder="https://example.com"><select aria-label="Category" data-type="${index}">${["Social", "Code", "Video", "Writing", "Business", "Other"].map(type => `<option ${link.type === type ? "selected" : ""}>${type}</option>`).join("")}</select><button type="button" data-remove="${index}" aria-label="Remove link">×</button></div>`
+      `<div class="link-row">
+        <input aria-label="Link label" data-label="${index}" value="${esc(link.label)}" placeholder="Label" maxlength="40">
+        <input aria-label="Link URL" data-url="${index}" type="url" value="${esc(link.url)}" placeholder="https://example.com">
+        <select aria-label="Category" data-type="${index}">${["Social", "Code", "Video", "Writing", "Business", "Other"].map(type => `<option ${link.type === type ? "selected" : ""}>${type}</option>`).join("")}</select>
+        <select aria-label="Show link on Default website and/or domains" data-placement multiple size="4">
+          ${renderPlacementOptions(link.domainIds || [], link.showOnHome !== false)}
+        </select>
+        <button type="button" data-remove="${index}" aria-label="Remove link">×</button>
+      </div>`
     ).join("");
     $$("[data-remove]").forEach(button => button.addEventListener("click", () => {
       links.splice(Number(button.dataset.remove), 1);
@@ -1065,12 +1158,17 @@
   });
   $("#links-form").addEventListener("submit", async event => {
     event.preventDefault();
-    const next = $$(".link-row").map((row, index) => ({
-      id: links[index]?.id || `social-${crypto.randomUUID()}`,
-      label: $(`[data-label="${index}"]`).value.trim(),
-      url: $(`[data-url="${index}"]`).value.trim(),
-      type: $(`[data-type="${index}"]`).value
-    })).filter(link => link.label);
+    const next = $$(".link-row").map((row, index) => {
+      const placement = selectedValues($("[data-placement]", row));
+      return {
+        id: links[index]?.id || `social-${crypto.randomUUID()}`,
+        label: $(`[data-label="${index}"]`).value.trim(),
+        url: $(`[data-url="${index}"]`).value.trim(),
+        type: $(`[data-type="${index}"]`).value,
+        showOnHome: placement.includes("@default"),
+        domainIds: placement.filter(id => id !== "@default")
+      };
+    }).filter(link => link.label);
     if (next.some(link => link.url && !isWebUrl(link.url))) {
       setStatus("#links-status", "Use a full https:// or http:// URL.", true);
       return;

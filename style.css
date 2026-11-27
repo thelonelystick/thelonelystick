@@ -212,6 +212,23 @@ html[data-theme="light"] .domain-accessible-nav li a span{color:#655477}
 .domain-media-grid img{display:block;width:100%;height:220px;object-fit:cover}
 .domain-media-grid figcaption{padding:9px 12px;color:var(--muted);font-size:11px}
 .domain-empty-state{margin-top:42px;padding:20px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:13px}
+.web-puppeteer{position:absolute;top:-1%;left:50%;z-index:1;width:min(42%,480px);height:36%;overflow:visible;transform:translateX(-50%);pointer-events:none;opacity:.88;filter:drop-shadow(0 12px 22px #0008)}
+.organic-web-threads{z-index:2}
+.organic-web-domains{z-index:3}
+html[data-theme="light"] .web-puppeteer{opacity:.78;filter:drop-shadow(0 12px 18px #39235430)}
+.contact-message-form{display:grid;gap:8px;max-width:560px;margin:22px auto 0;padding:24px;text-align:left;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.contact-message-form h3{margin:0 0 8px;font:600 19px var(--display)}
+.contact-message-form label{margin-top:8px;font-size:11px;font-weight:700}
+.contact-message-form input,.contact-message-form textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--text);font:inherit}
+.contact-message-form textarea{resize:vertical}
+.contact-message-form button{justify-self:start;margin-top:8px;border:0}
+.contact-form-status{min-height:20px;margin:4px 0 0;color:var(--muted);font-size:11px}
+.contact-form-status.is-error{color:#b24b44}
+.contact-message-form button:disabled{opacity:.65;cursor:wait}
+.domain-links{padding:18px 22px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.domain-links h2{margin-top:0}
+@media(max-width:800px){.web-puppeteer{width:78%;height:25%;top:0}}
+@media(max-width:540px){.contact-message-form{padding:18px}}
 
 .organic-web.wrap{max-width:none;padding-right:0;padding-left:0}
 .web-entrance{position:relative;display:grid;grid-template-columns:1fr 1fr;min-height:170px;overflow:hidden;border:1px solid #f1a94c40;border-right:0;border-left:0;border-radius:0;background:#17100d;color:#fff}
@@ -276,3 +293,28 @@ html[data-theme="light"] .web-enter:hover{background:#e2d1f6;color:#34234c}
 html[data-theme="light"] .organic-web-canvas{background:radial-gradient(ellipse at 50% 50%,#aa8bdd17,transparent 62%),linear-gradient(145deg,#f3effb,#e8e1f3)}
 html[data-theme="light"] .silk-web-corner{stroke:#8660bd;opacity:.3;filter:drop-shadow(0 0 3px #9a7bd84d)}
 html[data-theme="light"] .domain-thread{stroke:#63488b85}
+.silk-web-background{z-index:0}
+.web-atmosphere,.web-fog{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.web-atmosphere{z-index:1}
+.web-atmosphere::before,.web-atmosphere::after{position:absolute;inset:0;content:""}
+.web-atmosphere::before{background:linear-gradient(180deg,#09090978,#09090955 45%,#09090988),url("/assets/solar-tarot-background.png") center 42%/cover no-repeat;opacity:.1}
+.web-atmosphere::after{background:url("/assets/organic-web-tarot-loop.gif") left center/auto 100% no-repeat;clip-path:inset(0 80% 0 0);filter:grayscale(1) brightness(.7);opacity:.12;animation:tarot-drift 100s ease-in-out infinite alternate}
+.web-fog{z-index:2;opacity:.15}
+.web-fog::before,.web-fog::after{position:absolute;inset:-30%;content:"";filter:blur(38px);background:radial-gradient(ellipse at 32% 54%,#85858528,transparent 37%),radial-gradient(ellipse at 72% 45%,#b0b0b01c,transparent 34%);animation:fog-drift 48s ease-in-out infinite alternate}
+.web-fog::after{transform:translate(18%,8%) scale(1.2);opacity:.7;animation-duration:62s;animation-direction:alternate-reverse}
+.web-puppeteer{position:absolute;top:-1%;left:50%;z-index:3;width:min(48%,560px);height:50%;object-fit:cover;object-position:center top;transform:translateX(-50%);pointer-events:none;opacity:.92;filter:grayscale(1) contrast(1.08) drop-shadow(0 12px 22px #0008);mix-blend-mode:screen}
+.organic-web-threads{z-index:4}
+.organic-web-domains{z-index:5}
+html[data-theme="light"] .web-atmosphere::before{background:linear-gradient(180deg,#f3effbbf,#f3effb9c 52%,#f3effbc9),url("/assets/lunar-tarot-background.png") center 42%/cover no-repeat;opacity:.55}
+html[data-theme="light"] .web-atmosphere::after,html[data-theme="light"] .web-fog{opacity:0}
+html[data-admin-theme="light"] .web-atmosphere::before,html[data-admin-theme="light"] .web-atmosphere::after,html[data-admin-theme="light"] .web-fog{opacity:0}
+.domain-preview-stage[data-theme="light"] .web-atmosphere::before{background:linear-gradient(180deg,#f3effbbf,#f3effb9c 52%,#f3effbc9),url("/assets/lunar-tarot-background.png") center 42%/cover no-repeat;opacity:.55}
+.domain-preview-stage[data-theme="light"] .web-atmosphere::after,.domain-preview-stage[data-theme="light"] .web-fog{opacity:0}
+.domain-preview-stage .web-puppeteer{width:min(48%,440px);height:48%}
+.domain-preview-stage[data-theme="dark"] .web-atmosphere::before{opacity:.1}
+.domain-preview-stage[data-theme="dark"] .web-atmosphere::after{opacity:.12}
+.domain-preview-stage[data-theme="dark"] .web-fog{opacity:.15}
+@keyframes fog-drift{from{transform:translate(-3%,-1%) scale(1)}to{transform:translate(4%,2%) scale(1.08)}}
+@keyframes tarot-drift{from{transform:translateY(-2%)}to{transform:translateY(2%)}}
+@media(max-width:800px){.web-puppeteer{width:72%;height:43%;top:0}}
+@media(prefers-reduced-motion:reduce){.web-atmosphere::after,.web-fog::before,.web-fog::after{animation:none!important}}
