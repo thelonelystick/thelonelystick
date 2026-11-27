@@ -79,7 +79,7 @@
     if (!canvas.querySelector(".web-puppeteer")) {
       const hand = document.createElement("img");
       hand.className = "web-puppeteer";
-      hand.src = "/assets/organic-web-hand-cropped.png";
+      hand.src = "/assets/organic-web-hand-transparent.png";
       hand.alt = "";
       hand.setAttribute("aria-hidden", "true");
       canvas.insertBefore(hand, svg);

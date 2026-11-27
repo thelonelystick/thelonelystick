@@ -286,14 +286,8 @@ html[data-theme="light"] .web-enter:hover{background:#e2d1f6;color:#34234c}
 .is-welcome-route .organic-web{display:block!important;min-height:100vh;margin:0;padding:0;border:0}
 .is-welcome-route .organic-web-canvas{height:100vh!important;min-height:100vh!important;border:0;border-radius:0}
 .organic-web-canvas{background:radial-gradient(ellipse at 50% 50%,#e65b160c,transparent 58%),linear-gradient(145deg,#100c0a,#080808)}
-.silk-web-background{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.silk-web-corner{stroke:#f27a26;opacity:.27;filter:drop-shadow(0 0 3px #f27a264d)}
-.organic-web-threads{z-index:1}
-.organic-web-domains{z-index:2}
 html[data-theme="light"] .organic-web-canvas{background:radial-gradient(ellipse at 50% 50%,#aa8bdd17,transparent 62%),linear-gradient(145deg,#f3effb,#e8e1f3)}
-html[data-theme="light"] .silk-web-corner{stroke:#8660bd;opacity:.3;filter:drop-shadow(0 0 3px #9a7bd84d)}
 html[data-theme="light"] .domain-thread{stroke:#63488b85}
-.silk-web-background{z-index:0}
 .web-atmosphere,.web-fog{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .web-atmosphere{z-index:1}
 .web-atmosphere::before,.web-atmosphere::after{position:absolute;inset:0;content:""}
@@ -305,10 +299,10 @@ html[data-theme="light"] .domain-thread{stroke:#63488b85}
 .web-puppeteer{position:absolute;top:-1%;left:50%;z-index:3;width:min(48%,560px);height:50%;object-fit:cover;object-position:center top;transform:translateX(-50%);pointer-events:none;opacity:.92;filter:grayscale(1) contrast(1.08) drop-shadow(0 12px 22px #0008);mix-blend-mode:screen}
 .organic-web-threads{z-index:4}
 .organic-web-domains{z-index:5}
-html[data-theme="light"] .web-atmosphere::before{background:linear-gradient(180deg,#f3effbbf,#f3effb9c 52%,#f3effbc9),url("/assets/lunar-tarot-background.png") center 42%/cover no-repeat;opacity:.55}
+html[data-theme="light"] .web-atmosphere::before{background:linear-gradient(180deg,#f3effb9c,#f3effb66 52%,#f3effba6),url("/assets/lunar-tarot-background.png") center 42%/cover no-repeat;opacity:.9}
 html[data-theme="light"] .web-atmosphere::after,html[data-theme="light"] .web-fog{opacity:0}
 html[data-admin-theme="light"] .web-atmosphere::before,html[data-admin-theme="light"] .web-atmosphere::after,html[data-admin-theme="light"] .web-fog{opacity:0}
-.domain-preview-stage[data-theme="light"] .web-atmosphere::before{background:linear-gradient(180deg,#f3effbbf,#f3effb9c 52%,#f3effbc9),url("/assets/lunar-tarot-background.png") center 42%/cover no-repeat;opacity:.55}
+.domain-preview-stage[data-theme="light"] .web-atmosphere::before{background:linear-gradient(180deg,#f3effb9c,#f3effb66 52%,#f3effba6),url("/assets/lunar-tarot-background.png") center 42%/cover no-repeat;opacity:.9}
 .domain-preview-stage[data-theme="light"] .web-atmosphere::after,.domain-preview-stage[data-theme="light"] .web-fog{opacity:0}
 .domain-preview-stage .web-puppeteer{width:min(48%,440px);height:48%}
 .domain-preview-stage[data-theme="dark"] .web-atmosphere::before{opacity:.1}
@@ -318,3 +312,9 @@ html[data-admin-theme="light"] .web-atmosphere::before,html[data-admin-theme="li
 @keyframes tarot-drift{from{transform:translateY(-2%)}to{transform:translateY(2%)}}
 @media(max-width:800px){.web-puppeteer{width:72%;height:43%;top:0}}
 @media(prefers-reduced-motion:reduce){.web-atmosphere::after,.web-fog::before,.web-fog::after{animation:none!important}}
+
+.header{background:rgba(9,9,9,.68);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+html[data-theme="light"] .header{background:rgba(246,244,239,.76)}
+@media(max-width:540px){.nav{background:rgba(17,17,13,.78);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}html[data-theme="light"] .nav{background:rgba(248,245,255,.82)}}
+html[data-theme="light"] .web-puppeteer{opacity:.82;filter:invert(1) grayscale(1) contrast(1.12) drop-shadow(0 12px 18px #39235430);mix-blend-mode:multiply}
+.contact-address{display:none!important}

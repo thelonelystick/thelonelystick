@@ -325,8 +325,6 @@
     const emailPath = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "";
     $("#contact-message").textContent = contact.message || "";
     $("#contact-email").href = emailPath ? `mailto:${emailPath}?subject=Hello` : "#";
-    $("#contact-address").href = emailPath ? `mailto:${emailPath}` : "#";
-    $("#contact-address").textContent = emailPath;
     const whatsapp = $("#contact-whatsapp");
     const whatsappNumber = String(contact.whatsapp || "").trim();
     const whatsappDigits = whatsappNumber.replace(/\D/g, "");

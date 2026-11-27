@@ -463,13 +463,31 @@
     ].join("");
   }
   function refreshPlacementChoices() {
-    $$(".project-edit [data-project-placement], .link-row [data-placement]").forEach(select => {
+    $$(".project-edit [data-project-placement]").forEach(select => {
       const selected = selectedValues(select);
       select.innerHTML = renderPlacementOptions(
         selected.filter(id => id !== "@default"),
         selected.includes("@default")
       );
     });
+  }
+  function linkPlacement(link) {
+    const domainIds = new Set((content.web.domains || []).map(domain => domain.id));
+    return {
+      showOnHome: link.showOnHome !== false,
+      domainIds: [...new Set((Array.isArray(link.domainIds) ? link.domainIds : [])
+        .filter(id => domainIds.has(id)))]
+    };
+  }
+  function linkPlacementSummary(placement) {
+    const selectedIds = new Set(placement.domainIds);
+    const labels = [
+      ...(placement.showOnHome ? ["Default website"] : []),
+      ...(content.web.domains || [])
+        .filter(domain => selectedIds.has(domain.id))
+        .map(domain => domain.title)
+    ];
+    return labels.length ? labels.join(", ") : "Not shown";
   }
   function renderDomains(domains) {
     if (!domains) {
@@ -1067,7 +1085,10 @@
         <header><div><strong>${esc(message.name)}</strong><a href="mailto:${esc(message.email)}">${esc(message.email)}</a></div>
           <time datetime="${esc(message.created_at)}">${esc(date)}</time></header>
         <p>${esc(message.message)}</p>
-        <button class="button secondary" type="button" data-message-read="${read ? "false" : "true"}">${read ? "Mark unread" : "Mark read"}</button>
+        <div class="inbox-message-actions">
+          <button class="button secondary" type="button" data-message-read="${read ? "false" : "true"}">${read ? "Mark unread" : "Mark read"}</button>
+          <button class="button danger" type="button" data-message-delete>Delete message</button>
+        </div>
       </article>`;
     }).join("") : `<div class="empty"><b>✉</b><h3>No messages yet</h3><p>Messages submitted through the public contact form will appear here.</p></div>`;
   }
@@ -1103,6 +1124,26 @@
     setStatus("#inbox-status", `Inbox connected · ${messages.length} message${messages.length === 1 ? "" : "s"} (latest 100)`);
   }
   $("#inbox-list").addEventListener("click", async event => {
+    const deleteButton = event.target.closest("[data-message-delete]");
+    if (deleteButton) {
+      const row = deleteButton.closest("[data-message-id]");
+      if (!row || !window.confirm("Permanently delete this message from the inbox? This cannot be undone.")) return;
+      deleteButton.disabled = true;
+      const {data, error} = await authClient.from("contact_messages")
+        .delete().eq("id", row.dataset.messageId).select("id");
+      if (error) {
+        setStatus("#inbox-status", `Could not delete message: ${error.message}`, true);
+        deleteButton.disabled = false;
+        return;
+      }
+      if (!Array.isArray(data) || data.length === 0) {
+        setStatus("#inbox-status", "Message was not deleted; it may already be gone or access was denied.", true);
+        deleteButton.disabled = false;
+        return;
+      }
+      await loadInbox();
+      return;
+    }
     const button = event.target.closest("[data-message-read]");
     const row = button?.closest("[data-message-id]");
     if (!button || !row) return;
@@ -1136,37 +1177,85 @@
     }
   });
   function renderLinks() {
-    $("#links-list").innerHTML = links.map((link, index) =>
-      `<div class="link-row">
+    $("#links-list").innerHTML = links.map((link, index) => {
+      const summary = linkPlacementSummary(linkPlacement(link));
+      return `<div class="link-row">
         <input aria-label="Link label" data-label="${index}" value="${esc(link.label)}" placeholder="Label" maxlength="40">
         <input aria-label="Link URL" data-url="${index}" type="url" value="${esc(link.url)}" placeholder="https://example.com">
         <select aria-label="Category" data-type="${index}">${["Social", "Code", "Video", "Writing", "Business", "Other"].map(type => `<option ${link.type === type ? "selected" : ""}>${type}</option>`).join("")}</select>
-        <select aria-label="Show link on Default website and/or domains" data-placement multiple size="4">
-          ${renderPlacementOptions(link.domainIds || [], link.showOnHome !== false)}
-        </select>
-        <button type="button" data-remove="${index}" aria-label="Remove link">×</button>
-      </div>`
-    ).join("");
+        <button class="button secondary placement-trigger" type="button" data-placement-trigger="${index}" aria-haspopup="dialog" aria-controls="link-placement-dialog" aria-label="Choose placement for ${esc(link.label || "this link")}. Current: ${esc(summary)}" title="${esc(summary)}">${esc(summary)}</button>
+        <button class="link-remove" type="button" data-remove="${index}" aria-label="Remove link">×</button>
+      </div>`;
+    }).join("");
     $$("[data-remove]").forEach(button => button.addEventListener("click", () => {
       links.splice(Number(button.dataset.remove), 1);
       renderLinks();
     }));
   }
   $("#add-link").addEventListener("click", () => {
-    links.push({label: "", url: "", type: "Other"});
+    links.push({label: "", url: "", type: "Other", showOnHome: true, domainIds: []});
     renderLinks();
+  });
+  let activePlacementIndex = null;
+  const placementDialog = $("#link-placement-dialog");
+  $("#links-list").addEventListener("click", event => {
+    const trigger = event.target.closest("[data-placement-trigger]");
+    if (!trigger) return;
+    const index = Number(trigger.dataset.placementTrigger);
+    const link = links[index];
+    if (!Number.isInteger(index) || !link) return;
+    activePlacementIndex = index;
+    const placement = linkPlacement(link);
+    const choices = [
+      {id: "@default", title: "Default website", selected: placement.showOnHome},
+      ...(content.web.domains || []).map(domain => ({
+        id: domain.id,
+        title: domain.title,
+        selected: placement.domainIds.includes(domain.id)
+      }))
+    ];
+    $("#link-placement-options").innerHTML = choices.map(choice =>
+      `<label class="placement-option"><input type="checkbox" value="${esc(choice.id)}" ${choice.selected ? "checked" : ""}><span>${esc(choice.title)}</span></label>`
+    ).join("");
+    placementDialog.showModal();
+  });
+  $("#apply-link-placement").addEventListener("click", () => {
+    const index = activePlacementIndex;
+    if (!Number.isInteger(index) || !links[index]) return;
+    const selected = $$("#link-placement-options input:checked").map(input => input.value);
+    links[index] = {
+      ...links[index],
+      showOnHome: selected.includes("@default"),
+      domainIds: selected.filter(id => id !== "@default")
+    };
+    const trigger = $(`[data-placement-trigger="${index}"]`, $("#links-list"));
+    if (trigger) {
+      const summary = linkPlacementSummary(linkPlacement(links[index]));
+      trigger.textContent = summary;
+      trigger.title = summary;
+      trigger.setAttribute("aria-label", `Choose placement for ${links[index].label || "this link"}. Current: ${summary}`);
+    }
+    placementDialog.close();
+  });
+  $("#close-link-placement").addEventListener("click", () => placementDialog.close());
+  $("#cancel-link-placement").addEventListener("click", () => placementDialog.close());
+  placementDialog.addEventListener("click", event => {
+    if (event.target === placementDialog) placementDialog.close();
+  });
+  placementDialog.addEventListener("close", () => {
+    activePlacementIndex = null;
   });
   $("#links-form").addEventListener("submit", async event => {
     event.preventDefault();
     const next = $$(".link-row").map((row, index) => {
-      const placement = selectedValues($("[data-placement]", row));
+      const placement = linkPlacement(links[index] || {});
       return {
         id: links[index]?.id || `social-${crypto.randomUUID()}`,
         label: $(`[data-label="${index}"]`).value.trim(),
         url: $(`[data-url="${index}"]`).value.trim(),
         type: $(`[data-type="${index}"]`).value,
-        showOnHome: placement.includes("@default"),
-        domainIds: placement.filter(id => id !== "@default")
+        showOnHome: placement.showOnHome,
+        domainIds: placement.domainIds
       };
     }).filter(link => link.label);
     if (next.some(link => link.url && !isWebUrl(link.url))) {
