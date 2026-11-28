@@ -229,8 +229,12 @@
       return url ? `<figure><img src="${escapeHTML(url)}" alt="${escapeHTML(item.alt || item.title || domain.title)}" loading="lazy"><figcaption>${escapeHTML(item.title || item.alt || "")}</figcaption></figure>` : "";
     }).join("")}</div></section>` : "";
     const moreSection = externalUrl ? `<section><h2>More</h2><a class="btn btn-gold" href="${escapeHTML(externalUrl)}" target="_blank" rel="noopener noreferrer">Visit ${escapeHTML(domain.title)} ↗</a></section>` : "";
-    const hasContent = featuredProjects.length || articles.length || media.length || socialLinks.length || externalUrl || domain.pageContent;
-    page.innerHTML = `<span class="kicker">${escapeHTML(domain.themePresetId || domain.icon || "DOMAIN")}</span><h1>${escapeHTML(domain.title)}</h1>${linksSection}<section><h2>Introduction</h2><p>${escapeHTML(domain.description)}</p>${domain.pageContent ? `<div class="domain-page-copy">${escapeHTML(domain.pageContent)}</div>` : ""}</section>${projectsSection}${articlesSection}${mediaSection}${moreSection}${hasContent ? "" : `<p class="domain-empty-state">More in this domain will appear here when it is ready.</p>`}`;
+    const customSections = (Array.isArray(domain.sections) ? domain.sections : [])
+      .filter(section => section && typeof section === "object" && (section.title || section.content))
+      .map(section => `<section class="domain-custom-section"><h2>${escapeHTML(section.title || "")}</h2>${section.content ? `<div class="domain-page-copy">${escapeHTML(section.content)}</div>` : ""}</section>`)
+      .join("");
+    const hasContent = featuredProjects.length || articles.length || media.length || socialLinks.length || externalUrl || domain.pageContent || customSections;
+    page.innerHTML = `<span class="kicker">${escapeHTML(domain.themePresetId || domain.icon || "DOMAIN")}</span><h1>${escapeHTML(domain.title)}</h1>${linksSection}<section><h2>Introduction</h2><p>${escapeHTML(domain.description)}</p>${domain.pageContent ? `<div class="domain-page-copy">${escapeHTML(domain.pageContent)}</div>` : ""}</section>${customSections}${projectsSection}${articlesSection}${mediaSection}${moreSection}${hasContent ? "" : `<p class="domain-empty-state">More in this domain will appear here when it is ready.</p>`}`;
   }
 
   function renderOrganicWeb(web, projects, links) {
@@ -287,8 +291,10 @@
       const value = siteCopy[element.dataset.copy];
       if (element.dataset.copy === "heroTitle") {
         renderPlainText(element, value);
-      } else if (["aboutTitle", "projectsTitle", "learningTitle", "contactTitle"].includes(element.dataset.copy)) {
+      } else if (["aboutTitle", "projectsTitle", "contactTitle"].includes(element.dataset.copy)) {
         renderRichText(element, value);
+      } else if (["aboutKicker", "projectsKicker", "contactKicker"].includes(element.dataset.copy)) {
+        element.textContent = typeof value === "string" ? value.replace(/^\s*\d+\s*\/\s*/, "") : "";
       } else {
         element.textContent = typeof value === "string" ? value : "";
       }
@@ -297,10 +303,6 @@
     $("#principles-list").innerHTML = principles.map((principle, index) =>
       `<div><span>${String(index + 1).padStart(2, "0")}</span> ${escapeHTML(principle)}</div>`
     ).join("");
-    const groups = Array.isArray(siteCopy.toolGroups) ? siteCopy.toolGroups : [];
-    $("#toolkit-list").innerHTML = `${groups.map(group =>
-      `<div class="tool-group"><h3>${escapeHTML(group.title || "")}</h3><div class="pills">${(Array.isArray(group.items) ? group.items : []).map(item => `<span>${escapeHTML(item)}</span>`).join("")}</div></div>`
-    ).join("")}<div class="learning-note"><span class="gold">✳</span> <span data-copy="learningNote">${escapeHTML(siteCopy.learningNote || "")}</span></div>`;
   }
   function renderContent(saved) {
     const content = saved && typeof saved === "object" ? saved : {};
@@ -355,7 +357,17 @@
     }
     renderContent(data.content);
   }
-  $("#contact-form").addEventListener("submit", async event => {
+  const contactForm = $("#contact-form");
+  const contactFormToggle = $("#contact-form-toggle");
+  contactFormToggle.addEventListener("click", () => {
+    const showForm = contactForm.hidden;
+    contactForm.hidden = !showForm;
+    contactFormToggle.setAttribute("aria-expanded", String(showForm));
+    $("#contact-form-toggle-label").textContent = showForm ? "Hide message form" : "Send a message";
+    $("#contact-form-toggle-icon").textContent = showForm ? "−" : "+";
+    if (showForm) $("#contact-name").focus();
+  });
+  contactForm.addEventListener("submit", async event => {
     event.preventDefault();
     const form = event.currentTarget;
     const status = $("#contact-form-status");

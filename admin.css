@@ -100,6 +100,18 @@ html[data-admin-theme="dark"] .connection-add-row select,html[data-admin-theme="
 @media(max-width:900px){.connection-edit{grid-template-columns:1fr 1fr 1fr}.connection-edit strong{grid-column:1/-1}.connection-edit .remove-card{justify-self:start}}
 @media(max-width:700px){.web-editor-preview-heading,.theme-preset-heading{align-items:flex-start;flex-direction:column}.web-preview-toolbar{justify-content:flex-start}.connection-add-row{grid-template-columns:1fr}.connection-edit{grid-template-columns:1fr 1fr}.connection-edit strong{grid-column:1/-1}.preset-fields{grid-template-columns:1fr 1fr}.preset-fields .domain-field-wide{grid-column:1/-1}.domain-preview-stage{padding:6px}}
 
+.domain-sections-editor{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+.domain-sections-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:12px}
+.domain-sections-heading h3{margin:0;font:600 15px var(--display)}
+.domain-sections-heading p{margin:4px 0 0;color:var(--muted);font-size:10px}
+.domain-custom-section-list{display:grid;gap:10px}
+.domain-section-entry{display:grid;grid-template-columns:minmax(160px,.8fr) minmax(0,1.5fr) auto;align-items:start;gap:12px;padding:14px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.domain-section-entry label{min-width:0;font-size:10px;font-weight:700}
+.domain-section-entry input,.domain-section-entry textarea{display:block;width:100%;margin-top:6px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font:inherit;padding:9px}
+.domain-section-entry textarea{resize:vertical}
+.domain-section-entry .remove-card{align-self:end;white-space:nowrap}
+@media(max-width:700px){.domain-sections-heading{align-items:flex-start;flex-direction:column}.domain-section-entry{grid-template-columns:1fr}.domain-section-entry .remove-card{justify-self:start}}
+
 .welcome{background:linear-gradient(145deg,#fffefa,#eee7f7);border:1px solid var(--line);color:var(--ink)}
 .welcome .eyebrow{color:var(--violet)}
 .welcome p{color:var(--muted)}

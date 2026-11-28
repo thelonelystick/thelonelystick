@@ -28,7 +28,7 @@
       domains: DOMAIN_SEEDS.map(([id, title, description, icon, x, y, threadLength], index) => ({
         id, slug: id, title, description, icon, published, hidden: false, displayOrder: index + 1,
         themePresetId: "solar", position: {x, y}, threadLength, pagePath: `/domains/${id}`,
-        pageContent: "", url: "", featuredProjectIds: [], socialLinkIds: [], articles: [], media: [], createdAt: now, updatedAt: now
+        pageContent: "", sections: [], url: "", featuredProjectIds: [], socialLinkIds: [], articles: [], media: [], createdAt: now, updatedAt: now
       })),
       connections: [],
       themePresets: makeDefaultThemePresets()
@@ -67,6 +67,12 @@
         threadLength: domain.threadLength !== null && domain.threadLength !== "" && Number.isFinite(Number(domain.threadLength)) ? Number(domain.threadLength) : 65,
         pagePath: typeof domain.pagePath === "string" ? domain.pagePath : `/domains/${slug}`,
         pageContent: typeof domain.pageContent === "string" ? domain.pageContent : "",
+        sections: Array.isArray(domain.sections) ? domain.sections.filter(section => section && typeof section === "object").map((section, sectionIndex) => ({
+          ...section,
+          id: typeof section.id === "string" && section.id.trim() ? section.id : `section-${sectionIndex + 1}`,
+          title: typeof section.title === "string" ? section.title : "",
+          content: typeof section.content === "string" ? section.content : ""
+        })) : [],
         url: typeof domain.url === "string" ? domain.url : "",
         featuredProjectIds: Array.isArray(domain.featuredProjectIds) ? domain.featuredProjectIds : [],
         socialLinkIds: Array.isArray(domain.socialLinkIds) ? domain.socialLinkIds : [],
@@ -510,6 +516,12 @@
       }).join("");
       const themeOptions = themePresetDrafts.map(preset =>
         `<option value="${esc(preset.id)}" ${domain.themePresetId === preset.id ? "selected" : ""}>${esc(preset.name)}</option>`).join("");
+      const sections = (Array.isArray(domain.sections) ? domain.sections : []).map((section, sectionIndex) => `
+        <article class="domain-section-entry" data-domain-section data-domain-section-id="${esc(section.id || `section-${sectionIndex + 1}`)}">
+          <label>Section title<input data-domain-section-title value="${esc(section.title || "")}" maxlength="80" required placeholder="For example: My approach"></label>
+          <label>Section content<textarea data-domain-section-content rows="3" maxlength="3000" placeholder="Add the details for this section.">${esc(section.content || "")}</textarea></label>
+          <button type="button" class="remove-card" data-domain-section-remove>Remove section</button>
+        </article>`).join("");
       return `<article class="domain-edit" data-domain-id="${esc(domain.id)}">
         <header class="domain-edit-head"><div><span class="eyebrow">DOMAIN ${String(index + 1).padStart(2, "0")} / ${esc(domain.id)}</span><strong>${esc(domain.title || "Untitled domain")}</strong></div><div class="card-order">
           <button type="button" class="order-card" data-domain-move="-1" aria-label="Move ${esc(domain.title)} up" ${index === 0 ? "disabled" : ""}>↑</button>
@@ -536,6 +548,10 @@
           <label>Featured projects<select data-domain-projects multiple size="4">${projectOptions}</select></label>
           <label>Social links<select data-domain-social multiple size="4">${socialOptions}</select></label>
         </div>
+        <div class="domain-sections-editor">
+          <div class="domain-sections-heading"><div><h3>Custom page sections</h3><p>Add or remove text sections on this domain's public page.</p></div><button type="button" class="button secondary" data-domain-add-section>+ Add section</button></div>
+          <div class="domain-custom-section-list">${sections}</div>
+        </div>
         <div class="domain-previews"><span>Preview this domain</span><div><article data-preview-theme="dark"><b>Solar</b><strong>${esc(domain.title)}</strong><small>${esc(domain.description)}</small></article><article data-preview-theme="light"><b>Lunar</b><strong>${esc(domain.title)}</strong><small>${esc(domain.description)}</small></article></div></div>
       </article>`;
     }).join("");
@@ -553,6 +569,11 @@
         title: $("[data-domain-title]", row).value.trim(),
         description: $("[data-domain-description]", row).value.trim(),
         pageContent: $("[data-domain-page-content]", row).value.trim(),
+        sections: $$("[data-domain-section]", row).map(section => ({
+          id: section.dataset.domainSectionId,
+          title: $("[data-domain-section-title]", section).value.trim(),
+          content: $("[data-domain-section-content]", section).value.trim()
+        })).filter(section => section.title || section.content),
         icon: $("[data-domain-icon]", row).value.trim(),
         pagePath: $("[data-domain-path]", row).value.trim(),
         url: $("[data-domain-url]", row).value.trim(),
@@ -792,6 +813,12 @@
       }
       if (domain.pagePath !== `/domains/${domain.slug}`) throw new Error(`Page path for ${domain.title} must be /domains/${domain.slug}.`);
       if (domain.url && !isWebUrl(domain.url)) throw new Error(`External URL for ${domain.title} must use http(s).`);
+      const sectionIds = new Set();
+      for (const section of Array.isArray(domain.sections) ? domain.sections : []) {
+        if (!section.title) throw new Error(`Give each custom section in ${domain.title} a title, or remove the empty section.`);
+        if (sectionIds.has(section.id)) throw new Error(`Custom section IDs in ${domain.title} must be unique.`);
+        sectionIds.add(section.id);
+      }
       if (domain.featuredProjectIds.some(id => !projectIds.has(id))) throw new Error(`A featured project reference in ${domain.title} is invalid.`);
       if (domain.socialLinkIds.some(id => !socialIds.has(id))) throw new Error(`A social link reference in ${domain.title} is invalid.`);
     }
@@ -878,7 +905,7 @@
       id: `domain-${crypto.randomUUID()}`, slug, title, description: $("#new-domain-description").value.trim(),
       icon: $("#new-domain-icon").value.trim() || "code", published: true, hidden: false,
       displayOrder: domains.length + 1, themePresetId: themePresetDrafts[0]?.id || "solar",
-      position: {x: 50, y: 50}, threadLength: 65, pagePath: `/domains/${slug}`, pageContent: "", url: "",
+      position: {x: 50, y: 50}, threadLength: 65, pagePath: `/domains/${slug}`, pageContent: "", sections: [], url: "",
       featuredProjectIds: [], socialLinkIds: [], articles: [], media: [], createdAt: now, updatedAt: now
     });
     renderDomains(domains);
@@ -891,6 +918,19 @@
     if (!row) return;
     const domains = readDomainDrafts();
     const index = [...row.parentElement.children].indexOf(row);
+    if (event.target.closest("[data-domain-add-section]")) {
+      domains[index].sections.push({id: `section-${crypto.randomUUID()}`, title: "", content: ""});
+      renderDomains(domains);
+      setStatus("#domain-publish-status", "Custom section added to the draft. Publish domains to save it.");
+      return;
+    }
+    if (event.target.closest("[data-domain-section-remove]")) {
+      const sectionRow = event.target.closest("[data-domain-section]");
+      domains[index].sections = domains[index].sections.filter(section => section.id !== sectionRow.dataset.domainSectionId);
+      renderDomains(domains);
+      setStatus("#domain-publish-status", "Custom section removed from the draft. Publish domains to save the change.");
+      return;
+    }
     if (event.target.closest("[data-domain-move]")) {
       const next = index + Number(event.target.closest("[data-domain-move]").dataset.domainMove);
       if (next < 0 || next >= domains.length) return;

@@ -22,6 +22,8 @@ published contact email while updating owner policies.
 
 The organic-web migration adds the initial eight domains only when a web
 configuration does not already exist, preserving other published content.
+Each domain can also have its own custom titled text sections; add or remove
+them in the domain editor and publish the web settings to make changes public.
 The contact inbox migration creates the public message-submission table; only
 the authorized portfolio owner can read or manage submitted messages. Set the
 authorized owner's Supabase app_metadata role to portfolio_admin as described
