@@ -344,6 +344,17 @@ html[data-admin-theme="light"] .web-atmosphere::before,html[data-admin-theme="li
 @media(max-width:800px){.web-puppeteer{width:72%;height:43%;top:0}}
 @media(prefers-reduced-motion:reduce){.web-atmosphere::after,.web-fog::before,.web-fog::after{animation:none!important}}
 
+@view-transition{navigation:auto}
+::view-transition-old(root){animation:page-exit .18s ease both}
+::view-transition-new(root){animation:page-enter .3s cubic-bezier(.2,.8,.2,1) both}
+@keyframes page-exit{to{opacity:0;transform:scale(.995)}}
+@keyframes page-enter{from{opacity:0;transform:translateY(8px) scale(.995)}to{opacity:1;transform:none}}
+:is(button,.button,.btn,[role="button"],a.nav-contact,a.back-top){transition:transform .18s cubic-bezier(.2,.8,.2,1),box-shadow .2s ease,border-color .2s ease,background-color .2s ease,color .2s ease,filter .2s ease}
+:is(button,.button,.btn,[role="button"],a.nav-contact,a.back-top):not(:disabled):hover{transform:translateY(-2px);box-shadow:0 6px 16px #0002}
+:is(button,.button,.btn,[role="button"],a.nav-contact,a.back-top):not(:disabled):active{transform:translateY(0) scale(.97);box-shadow:none}
+:is(button,.button,.btn,[role="button"],a.nav-contact,a.back-top):focus-visible{outline:2px solid currentColor;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){@view-transition{navigation:none}::view-transition-old(root),::view-transition-new(root){animation:none!important}:is(button,.button,.btn,[role="button"],a.nav-contact,a.back-top){transition:none!important;transform:none!important}}
+
 .header{background:rgba(9,9,9,.68);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
 html[data-theme="light"] .header{background:rgba(246,244,239,.76)}
 @media(max-width:540px){.nav{background:rgba(17,17,13,.78);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}html[data-theme="light"] .nav{background:rgba(248,245,255,.82)}}

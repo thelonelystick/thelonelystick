@@ -52,6 +52,17 @@ html[data-admin-theme="dark"] .project-edit select{background:#353535;color:var(
 .domain-preview-stage[data-theme="light"] .web-atmosphere::after,.domain-preview-stage[data-theme="light"] .web-fog{opacity:0}
 .domain-preview-stage[data-theme="light"] .web-puppeteer{opacity:.82;filter:invert(1) grayscale(1) contrast(1.12) drop-shadow(0 12px 18px #39235430);mix-blend-mode:multiply}
 @keyframes preview-fog-drift{from{transform:translate(-3%,-1%) scale(1)}to{transform:translate(4%,2%) scale(1.08)}}
+
+@view-transition{navigation:auto}
+::view-transition-old(root){animation:page-exit .18s ease both}
+::view-transition-new(root){animation:page-enter .3s cubic-bezier(.2,.8,.2,1) both}
+@keyframes page-exit{to{opacity:0;transform:scale(.995)}}
+@keyframes page-enter{from{opacity:0;transform:translateY(8px) scale(.995)}to{opacity:1;transform:none}}
+:is(button,.button,.btn,[role="button"]){transition:transform .18s cubic-bezier(.2,.8,.2,1),box-shadow .2s ease,border-color .2s ease,background-color .2s ease,color .2s ease,filter .2s ease}
+:is(button,.button,.btn,[role="button"]):not(:disabled):hover{transform:translateY(-2px);box-shadow:0 6px 16px #0002}
+:is(button,.button,.btn,[role="button"]):not(:disabled):active{transform:translateY(0) scale(.97);box-shadow:none}
+:is(button,.button,.btn,[role="button"]):focus-visible{outline:2px solid currentColor;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){@view-transition{navigation:none}::view-transition-old(root),::view-transition-new(root){animation:none!important}:is(button,.button,.btn,[role="button"]){transition:none!important;transform:none!important}}
 @keyframes preview-tarot-drift{from{transform:translateY(-2%)}to{transform:translateY(2%)}}
 
 /* Match the public Solar and Lunar palettes in the admin studio. */
