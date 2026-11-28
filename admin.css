@@ -45,12 +45,10 @@ html[data-admin-theme="dark"] .project-edit select{background:#353535;color:var(
 .domain-preview-stage .web-fog{z-index:0;opacity:.15}
 .domain-preview-stage .web-fog::before,.domain-preview-stage .web-fog::after{inset:-30%;filter:blur(38px);background:radial-gradient(ellipse at 32% 54%,#85858528,transparent 37%),radial-gradient(ellipse at 72% 45%,#b0b0b01c,transparent 34%);animation:preview-fog-drift 48s ease-in-out infinite alternate}
 .domain-preview-stage .web-fog::after{transform:translate(18%,8%) scale(1.2);opacity:.7;animation-duration:62s;animation-direction:alternate-reverse}
-.domain-preview-stage .web-puppeteer{position:absolute;top:0;left:50%;z-index:1;width:min(48%,440px);height:48%;object-fit:cover;object-position:center top;transform:translateX(-50%);pointer-events:none;opacity:.92;filter:grayscale(1) contrast(1.08) drop-shadow(0 12px 22px #0008);mix-blend-mode:screen}
-.domain-preview-stage .organic-web-threads{z-index:2}
-.domain-preview-stage .organic-web-domains{z-index:3}
+.domain-preview-stage .organic-web-threads{z-index:4}
+.domain-preview-stage .organic-web-domains{z-index:5}
 .domain-preview-stage[data-theme="light"] .web-atmosphere::before{background:linear-gradient(180deg,#f3effb9c,#f3effb66 52%,#f3effba6),url("/assets/lunar-tarot-background.png") center 42%/cover no-repeat;opacity:.9}
 .domain-preview-stage[data-theme="light"] .web-atmosphere::after,.domain-preview-stage[data-theme="light"] .web-fog{opacity:0}
-.domain-preview-stage[data-theme="light"] .web-puppeteer{opacity:1;filter:grayscale(1) sepia(1) saturate(2.6) hue-rotate(6deg) contrast(1.3) drop-shadow(0 0 3px #d7b56daa) drop-shadow(0 12px 22px #0006);mix-blend-mode:multiply}
 @keyframes preview-fog-drift{from{transform:translate(-3%,-1%) scale(1)}to{transform:translate(4%,2%) scale(1.08)}}
 
 @view-transition{navigation:auto}
@@ -174,3 +172,15 @@ html[data-admin-theme="dark"] .button.danger{border-color:#85453d;background:#29
 .domain-audio-editor{display:grid;gap:9px;margin:16px 0;padding:16px;border:1px solid var(--line);border-radius:8px}
 .domain-audio-editor>label:first-child{display:grid;gap:8px}
 @media(max-width:760px){.audio-setting{grid-template-columns:1fr}.audio-setting>div:last-child{align-items:stretch;flex-direction:column}.audio-setting .button{width:100%}}
+
+/* ===== Puppeteer hand: animated SVG ===== */
+.web-puppeteer{position:absolute;top:-1%;left:50%;z-index:3;width:min(52%,620px);height:auto;aspect-ratio:736/600;object-fit:contain;transform:translateX(-50%);pointer-events:none;opacity:1;filter:none;mix-blend-mode:normal;user-select:none}
+.web-puppeteer--light{display:none}
+html[data-theme="light"] .web-puppeteer--dark{display:none}
+html[data-theme="light"] .web-puppeteer--light{display:block}
+.domain-preview-stage .web-puppeteer{width:min(52%,440px)}
+.domain-preview-stage[data-theme="light"] .web-puppeteer--dark{display:none}
+.domain-preview-stage[data-theme="light"] .web-puppeteer--light{display:block}
+.domain-preview-stage[data-theme="dark"] .web-puppeteer--dark{display:block}
+.domain-preview-stage[data-theme="dark"] .web-puppeteer--light{display:none}
+@media(max-width:800px){.web-puppeteer{width:86%;top:0}}

@@ -77,12 +77,23 @@
       canvas.insertBefore(fog, svg);
     }
     if (!canvas.querySelector(".web-puppeteer")) {
-      const hand = document.createElement("img");
-      hand.className = "web-puppeteer";
-      hand.src = "/assets/organic-web-hand-transparent.png";
-      hand.alt = "";
-      hand.setAttribute("aria-hidden", "true");
-      canvas.insertBefore(hand, svg);
+      const motion = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+      const hands = ["dark", "light"].map(theme => {
+        const hand = document.createElement("img");
+        hand.className = `web-puppeteer web-puppeteer--${theme}`;
+        hand.alt = "";
+        hand.decoding = "async";
+        hand.draggable = false;
+        hand.setAttribute("aria-hidden", "true");
+        hand.dataset.hand = theme;
+        canvas.insertBefore(hand, svg);
+        return hand;
+      });
+      const syncHands = () => hands.forEach(hand => {
+        hand.src = `/assets/hand-${hand.dataset.hand}${motion && motion.matches ? "-still" : ""}.svg`;
+      });
+      syncHands();
+      if (motion && motion.addEventListener) motion.addEventListener("change", syncHands);
     }
     const visibleDomains = (Array.isArray(domains) ? domains : Array.isArray(web?.domains) ? web.domains : [])
       .filter(domain => domain && domain.hidden !== true && (includeUnpublished || domain.published !== false))

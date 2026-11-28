@@ -258,10 +258,8 @@ html[data-theme="light"] .domain-accessible-nav li a span{color:#655477}
 .domain-media-grid img{display:block;width:100%;height:220px;object-fit:cover}
 .domain-media-grid figcaption{padding:9px 12px;color:var(--muted);font-size:11px}
 .domain-empty-state{margin-top:42px;padding:20px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:13px}
-.web-puppeteer{position:absolute;top:-1%;left:50%;z-index:1;width:min(42%,480px);height:36%;overflow:visible;transform:translateX(-50%);pointer-events:none;opacity:.88;filter:drop-shadow(0 12px 22px #0008)}
 .organic-web-threads{z-index:2}
 .organic-web-domains{z-index:3}
-html[data-theme="light"] .web-puppeteer{opacity:.9;filter:drop-shadow(0 12px 18px #39235430)}
 .contact-message-form{display:grid;gap:8px;max-width:560px;margin:22px auto 0;padding:24px;text-align:left;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
 .contact-message-form h3{margin:0 0 8px;font:600 19px var(--display)}
 .contact-message-form label{margin-top:8px;font-size:11px;font-weight:700}
@@ -273,7 +271,6 @@ html[data-theme="light"] .web-puppeteer{opacity:.9;filter:drop-shadow(0 12px 18p
 .contact-message-form button:disabled{opacity:.65;cursor:wait}
 .domain-links{padding:18px 22px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
 .domain-links h2{margin-top:0}
-@media(max-width:800px){.web-puppeteer{width:78%;height:25%;top:0}}
 @media(max-width:540px){.contact-message-form{padding:18px}}
 
 .organic-web.wrap{max-width:none;padding-right:0;padding-left:0}
@@ -338,7 +335,6 @@ html[data-theme="light"] .domain-thread{stroke:#63488b85}
 .web-fog{z-index:2;opacity:.15}
 .web-fog::before,.web-fog::after{position:absolute;inset:-30%;content:"";filter:blur(38px);background:radial-gradient(ellipse at 32% 54%,#85858528,transparent 37%),radial-gradient(ellipse at 72% 45%,#b0b0b01c,transparent 34%);animation:fog-drift 48s ease-in-out infinite alternate}
 .web-fog::after{transform:translate(18%,8%) scale(1.2);opacity:.7;animation-duration:62s;animation-direction:alternate-reverse}
-.web-puppeteer{position:absolute;top:-1%;left:50%;z-index:3;width:min(48%,560px);height:50%;object-fit:cover;object-position:center top;transform:translateX(-50%);pointer-events:none;opacity:.92;filter:grayscale(1) contrast(1.08) drop-shadow(0 12px 22px #0008);mix-blend-mode:screen}
 .organic-web-threads{z-index:4}
 .organic-web-domains{z-index:5}
 html[data-theme="light"] .web-atmosphere::before{background:linear-gradient(180deg,#f3effb9c,#f3effb66 52%,#f3effba6),url("/assets/lunar-tarot-background.png") center 42%/cover no-repeat;opacity:.9}
@@ -346,13 +342,11 @@ html[data-theme="light"] .web-atmosphere::after,html[data-theme="light"] .web-fo
 html[data-admin-theme="light"] .web-atmosphere::before,html[data-admin-theme="light"] .web-atmosphere::after,html[data-admin-theme="light"] .web-fog{opacity:0}
 .domain-preview-stage[data-theme="light"] .web-atmosphere::before{background:linear-gradient(180deg,#f3effb9c,#f3effb66 52%,#f3effba6),url("/assets/lunar-tarot-background.png") center 42%/cover no-repeat;opacity:.9}
 .domain-preview-stage[data-theme="light"] .web-atmosphere::after,.domain-preview-stage[data-theme="light"] .web-fog{opacity:0}
-.domain-preview-stage .web-puppeteer{width:min(48%,440px);height:48%}
 .domain-preview-stage[data-theme="dark"] .web-atmosphere::before{opacity:.1}
 .domain-preview-stage[data-theme="dark"] .web-atmosphere::after{opacity:.12}
 .domain-preview-stage[data-theme="dark"] .web-fog{opacity:.15}
 @keyframes fog-drift{from{transform:translate(-3%,-1%) scale(1)}to{transform:translate(4%,2%) scale(1.08)}}
 @keyframes tarot-drift{from{transform:translateY(-2%)}to{transform:translateY(2%)}}
-@media(max-width:800px){.web-puppeteer{width:72%;height:43%;top:0}}
 @media(prefers-reduced-motion:reduce){.web-atmosphere::after,.web-fog::before,.web-fog::after{animation:none!important}}
 
 @view-transition{navigation:auto}
@@ -369,7 +363,6 @@ html[data-admin-theme="light"] .web-atmosphere::before,html[data-admin-theme="li
 .header{background:rgba(9,9,9,.68);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
 html[data-theme="light"] .header{background:rgba(246,244,239,.76)}
 @media(max-width:540px){.nav{background:rgba(17,17,13,.78);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}html[data-theme="light"] .nav{background:rgba(248,245,255,.82)}}
-html[data-theme="light"] .web-puppeteer{opacity:1;filter:grayscale(1) sepia(1) saturate(2.6) hue-rotate(6deg) contrast(1.3) drop-shadow(0 0 3px #d7b56daa) drop-shadow(0 12px 22px #0006);mix-blend-mode:multiply}
 .contact-address{display:none!important}
 .header{background:rgba(9,9,9,.5)}
 html[data-theme="light"] .header{background:rgba(246,244,239,.58)}
@@ -387,3 +380,15 @@ html[data-theme="light"] .header{background:rgba(246,244,239,.58)}
   html[data-theme="light"] .nav-contact{border-color:var(--line);background:transparent;color:var(--text)}
   html[data-theme="light"] .nav-contact span{color:var(--gold)}
 }
+
+/* ===== Puppeteer hand: animated SVG ===== */
+.web-puppeteer{position:absolute;top:-1%;left:50%;z-index:3;width:min(52%,620px);height:auto;aspect-ratio:736/600;object-fit:contain;transform:translateX(-50%);pointer-events:none;opacity:1;filter:none;mix-blend-mode:normal;user-select:none}
+.web-puppeteer--light{display:none}
+html[data-theme="light"] .web-puppeteer--dark{display:none}
+html[data-theme="light"] .web-puppeteer--light{display:block}
+.domain-preview-stage .web-puppeteer{width:min(52%,440px)}
+.domain-preview-stage[data-theme="light"] .web-puppeteer--dark{display:none}
+.domain-preview-stage[data-theme="light"] .web-puppeteer--light{display:block}
+.domain-preview-stage[data-theme="dark"] .web-puppeteer--dark{display:block}
+.domain-preview-stage[data-theme="dark"] .web-puppeteer--light{display:none}
+@media(max-width:800px){.web-puppeteer{width:86%;top:0}}
