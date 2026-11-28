@@ -50,7 +50,7 @@ html[data-admin-theme="dark"] .project-edit select{background:#353535;color:var(
 .domain-preview-stage .organic-web-domains{z-index:3}
 .domain-preview-stage[data-theme="light"] .web-atmosphere::before{background:linear-gradient(180deg,#f3effb9c,#f3effb66 52%,#f3effba6),url("/assets/lunar-tarot-background.png") center 42%/cover no-repeat;opacity:.9}
 .domain-preview-stage[data-theme="light"] .web-atmosphere::after,.domain-preview-stage[data-theme="light"] .web-fog{opacity:0}
-.domain-preview-stage[data-theme="light"] .web-puppeteer{opacity:1;filter:invert(1) grayscale(1) contrast(1.35) drop-shadow(0 0 3px #392354aa) drop-shadow(0 12px 22px #39235470);mix-blend-mode:multiply}
+.domain-preview-stage[data-theme="light"] .web-puppeteer{opacity:1;filter:grayscale(1) sepia(1) saturate(2.6) hue-rotate(6deg) contrast(1.3) drop-shadow(0 0 3px #d7b56daa) drop-shadow(0 12px 22px #0006);mix-blend-mode:multiply}
 @keyframes preview-fog-drift{from{transform:translate(-3%,-1%) scale(1)}to{transform:translate(4%,2%) scale(1.08)}}
 
 @view-transition{navigation:auto}

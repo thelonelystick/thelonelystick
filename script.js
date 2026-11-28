@@ -191,7 +191,7 @@
   }, true);
   document.addEventListener("click", event => {
     const target = event.target instanceof Element
-      ? event.target.closest("button, a[href], input[type='button'], input[type='submit'], input[type='reset'], input[type='checkbox'], input[type='radio'], select, [role='button'], summary")
+      ? event.target.closest("button, a[href], input, textarea, select, [role='button'], summary")
       : null;
     if (!target || target === audioToggle || target.matches(":disabled") ||
         target.getAttribute("aria-disabled") === "true" || !audioEnabled) return;

@@ -35,7 +35,9 @@ speaker button enables looping background music by default; visitors can mute
 it, and browsers may defer playback until the first interaction. Domain-specific
 background tracks override the site-wide track. Uploaded interaction sounds
 play on actionable controls, with a separate optional sound for the welcome
-"Shoot" button.
+"Shoot" button. The homepage fallback image can be uploaded from the admin
+editor or set with an external image URL; uploaded images are stored in the
+existing media bucket.
 
 The public contact form and admin inbox both use the configured Supabase
 project. Admin content updates, domain assignments, and inbox reads require

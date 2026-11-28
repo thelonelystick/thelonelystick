@@ -137,6 +137,7 @@
   let content = {
     siteCopy: {},
     heroImage: "",
+    heroImagePath: "",
     profilePhotos: [],
     contact: {email: "", message: "", whatsapp: ""},
     audio: {
@@ -238,7 +239,7 @@
   }, true);
   document.addEventListener("click", event => {
     const target = event.target instanceof Element
-      ? event.target.closest("button, a[href], input[type='button'], input[type='submit'], input[type='reset'], input[type='checkbox'], input[type='radio'], select, [role='button'], summary")
+      ? event.target.closest("button, a[href], input, textarea, select, [role='button'], summary")
       : null;
     if (!target || target === adminAudioToggle || target.matches(":disabled") ||
         target.getAttribute("aria-disabled") === "true" || !adminAudioEnabled || !adminInteractionAudioUrl) return;
@@ -323,6 +324,7 @@
         ...saved,
         siteCopy: saved.siteCopy && typeof saved.siteCopy === "object" ? saved.siteCopy : {},
         heroImage: typeof saved.heroImage === "string" ? saved.heroImage : "",
+        heroImagePath: typeof saved.heroImagePath === "string" ? saved.heroImagePath : "",
         contact: saved.contact && typeof saved.contact === "object" ? saved.contact : {email: "", message: "", whatsapp: ""},
         profilePhotos: Array.isArray(saved.profilePhotos) ? saved.profilePhotos.slice(0, 6) : [],
         links: (Array.isArray(saved.links) ? saved.links : []).map((link, index) => ({
@@ -424,13 +426,17 @@
     await deleteUploadedFiles([...new Set(paths)].filter(path => path && !activePaths.has(path)));
   }
 
-  function renderHome() {
-    $("#hero-title").value = plainTextFromLegacy(content.siteCopy?.heroTitle);
-    $("#hero-lead").value = plainTextFromLegacy(content.siteCopy?.heroLead);
+  function renderHomeImage() {
     $("#hero-image-url").value = content.heroImage || "";
+    $("#hero-image-file").value = "";
     const preview = $("#hero-image-preview");
     preview.src = content.heroImage || "";
     preview.hidden = !content.heroImage;
+  }
+  function renderHome() {
+    $("#hero-title").value = plainTextFromLegacy(content.siteCopy?.heroTitle);
+    $("#hero-lead").value = plainTextFromLegacy(content.siteCopy?.heroLead);
+    renderHomeImage();
   }
   $("#homepage-form").addEventListener("submit", async event => {
     event.preventDefault();
@@ -440,20 +446,79 @@
       return;
     }
     const previous = structuredClone(content);
+    const previousHeroImagePath = content.heroImagePath;
     content.siteCopy = {
       ...(content.siteCopy || {}),
       heroTitle: $("#hero-title").value.trim(),
       heroLead: $("#hero-lead").value.trim()
     };
     content.heroImage = image;
+    if (image !== previous.heroImage) content.heroImagePath = "";
     try {
       await publishContent();
-      setStatus("#homepage-status", "Homepage changes published.");
-      toast("Homepage published");
     } catch (error) {
       content = previous;
       setStatus("#homepage-status", error.message, true);
+      return;
     }
+    if (previousHeroImagePath && previousHeroImagePath !== content.heroImagePath) {
+      try {
+        await deleteUploadedFiles([previousHeroImagePath]);
+      } catch (error) {
+        setStatus("#homepage-status", `Homepage changes published, but fallback image cleanup failed: ${error.message}`, true);
+        return;
+      }
+    }
+    setStatus("#homepage-status", "Homepage changes published.");
+    toast("Homepage published");
+  });
+  $("#upload-hero-image").addEventListener("click", async () => {
+    const input = $("#hero-image-file");
+    const file = input.files[0];
+    if (!file) {
+      setStatus("#homepage-status", "Choose a fallback image first.", true);
+      return;
+    }
+    const previousHeroImage = content.heroImage;
+    const previousHeroImagePath = content.heroImagePath;
+    let uploaded;
+    try {
+      uploaded = await uploadImage(file, "hero");
+      content.heroImage = uploaded.url;
+      content.heroImagePath = uploaded.path;
+      await publishContent();
+    } catch (error) {
+      content.heroImage = previousHeroImage;
+      content.heroImagePath = previousHeroImagePath;
+      let cleanupError = "";
+      if (uploaded) {
+        try {
+          await deleteUploadedFiles([uploaded.path]);
+        } catch (cleanupFailure) {
+          cleanupError = ` Uploaded image also needs cleanup: ${cleanupFailure.message}`;
+        }
+      }
+      renderHomeImage();
+      setStatus("#homepage-status", `${error.message}${cleanupError}`, true);
+      return;
+    } finally {
+      input.value = "";
+    }
+    renderHomeImage();
+    let cleanupError = "";
+    if (previousHeroImagePath && previousHeroImagePath !== uploaded.path) {
+      try {
+        await deleteUploadedFiles([previousHeroImagePath]);
+      } catch (error) {
+        cleanupError = ` Previous image cleanup failed: ${error.message}`;
+      }
+    }
+    setStatus(
+      "#homepage-status",
+      cleanupError ? `Fallback image published.${cleanupError}` : "Fallback image uploaded and published.",
+      !!cleanupError
+    );
+    toast("Fallback image published");
   });
   $("#reset-homepage").addEventListener("click", () => {
     $("#hero-title").value = "";
@@ -461,6 +526,7 @@
   });
   $("#clear-hero-image").addEventListener("click", () => {
     $("#hero-image-url").value = "";
+    $("#hero-image-file").value = "";
     $("#hero-image-preview").hidden = true;
   });
   $("#hero-image-url").addEventListener("input", () => {
