@@ -89,18 +89,22 @@
   const audioStatus = $("#audio-status");
   const backgroundAudio = new Audio();
   const interactionAudio = new Audio();
+  const welcomeInteractionAudio = new Audio();
   backgroundAudio.loop = true;
   backgroundAudio.volume = 0.28;
   backgroundAudio.preload = "none";
   interactionAudio.volume = 0.2;
   interactionAudio.preload = "none";
-  let audioEnabled = false;
+  welcomeInteractionAudio.volume = 0.2;
+  welcomeInteractionAudio.preload = "none";
+  const audioPreferenceKey = "portfolio-sound-enabled";
+  let audioEnabled = localStorage.getItem(audioPreferenceKey) !== "false";
   let backgroundAudioUrl = "";
   let interactionAudioUrl = "";
-  const audioPreferenceKey = "portfolio-sound-enabled";
+  let welcomeInteractionAudioUrl = "";
   function updateAudioToggle() {
     if (!audioToggle) return;
-    const available = !!(backgroundAudioUrl || interactionAudioUrl);
+    const available = !!(backgroundAudioUrl || interactionAudioUrl || welcomeInteractionAudioUrl);
     audioToggle.disabled = !available;
     audioToggle.classList.toggle("is-muted", !audioEnabled);
     audioToggle.setAttribute("aria-pressed", String(audioEnabled));
@@ -117,35 +121,39 @@
     audio.load();
     return true;
   }
-  async function setAudioEnabled(enabled, persist = true) {
+  function startBackgroundAudio() {
+    if (!audioEnabled || !backgroundAudioUrl || !backgroundAudio.paused) return;
+    backgroundAudio.play().then(() => {
+      audioStatus.textContent = "";
+    }).catch(error => {
+      if (error.name === "NotAllowedError") {
+        audioStatus.textContent = "Sound is on. Playback will start after your first interaction.";
+        return;
+      }
+      audioStatus.textContent = "Background music could not play. Check the uploaded audio file.";
+      console.warn("Portfolio background audio could not start.", error);
+    });
+  }
+  function setAudioEnabled(enabled, persist = true) {
+    audioEnabled = enabled;
+    if (persist) localStorage.setItem(audioPreferenceKey, String(enabled));
     if (!enabled) {
-      audioEnabled = false;
       backgroundAudio.pause();
       interactionAudio.pause();
+      welcomeInteractionAudio.pause();
       interactionAudio.currentTime = 0;
+      welcomeInteractionAudio.currentTime = 0;
       updateAudioToggle();
-      if (persist) localStorage.setItem(audioPreferenceKey, "false");
       return;
     }
-    if (!backgroundAudioUrl && !interactionAudioUrl) {
+    if (!backgroundAudioUrl && !interactionAudioUrl && !welcomeInteractionAudioUrl) {
       audioStatus.textContent = "No background or interaction audio is configured.";
       updateAudioToggle();
       return;
     }
-    try {
-      if (backgroundAudioUrl) await backgroundAudio.play();
-      audioEnabled = true;
-      audioStatus.textContent = "";
-      if (persist) localStorage.setItem(audioPreferenceKey, "true");
-      updateAudioToggle();
-    } catch (error) {
-      audioEnabled = false;
-      backgroundAudio.pause();
-      audioStatus.textContent = "Audio could not start. Check the uploaded audio file and try again.";
-      localStorage.setItem(audioPreferenceKey, "false");
-      updateAudioToggle();
-      console.warn("Portfolio audio could not start.", error);
-    }
+    audioStatus.textContent = "";
+    updateAudioToggle();
+    startBackgroundAudio();
   }
   function trackUrl(track) {
     return safeImage(typeof track === "string" ? track : track?.url || "");
@@ -161,26 +169,40 @@
     const nextBackgroundUrl = trackUrl(currentDomain?.backgroundTrack) ||
       trackUrl(content.audio?.backgroundTrack) || trackUrl(preset?.audioTrack);
     const nextInteractionUrl = trackUrl(content.audio?.interactionTrack);
+    const nextWelcomeInteractionUrl = trackUrl(content.audio?.welcomeTrack);
     const backgroundChanged = setAudioSource(backgroundAudio, nextBackgroundUrl);
     setAudioSource(interactionAudio, nextInteractionUrl);
+    setAudioSource(welcomeInteractionAudio, nextWelcomeInteractionUrl);
     backgroundAudioUrl = nextBackgroundUrl;
     interactionAudioUrl = nextInteractionUrl;
+    welcomeInteractionAudioUrl = nextWelcomeInteractionUrl;
     updateAudioToggle();
-    if (backgroundChanged && audioEnabled && backgroundAudioUrl) {
-      void setAudioEnabled(true, false);
-    } else if (localStorage.getItem(audioPreferenceKey) === "true" && !audioEnabled) {
-      void setAudioEnabled(true, false);
-    }
+    if (backgroundChanged && audioEnabled) startBackgroundAudio();
   }
   audioToggle?.addEventListener("click", () => {
-    void setAudioEnabled(!audioEnabled);
+    setAudioEnabled(!audioEnabled);
   });
+  document.addEventListener("pointerdown", event => {
+    if (event.target instanceof Element && event.target.closest("#audio-toggle")) return;
+    startBackgroundAudio();
+  }, true);
+  document.addEventListener("keydown", event => {
+    if ((event.key === "Enter" || event.key === " ") && event.target !== audioToggle) startBackgroundAudio();
+  }, true);
   document.addEventListener("click", event => {
-    const button = event.target.closest("button, [role='button']");
-    if (!button || button === audioToggle || button.disabled || !audioEnabled || !interactionAudioUrl) return;
-    interactionAudio.currentTime = 0;
-    interactionAudio.play().catch(error => {
-      audioStatus.textContent = "The button interaction sound could not play.";
+    const target = event.target instanceof Element
+      ? event.target.closest("button, a[href], input[type='button'], input[type='submit'], input[type='reset'], input[type='checkbox'], input[type='radio'], select, [role='button'], summary")
+      : null;
+    if (!target || target === audioToggle || target.matches(":disabled") ||
+        target.getAttribute("aria-disabled") === "true" || !audioEnabled) return;
+    const useWelcomeTrack = target.id === "web-enter" && welcomeInteractionAudioUrl;
+    const audio = useWelcomeTrack ? welcomeInteractionAudio : interactionAudio;
+    const sourceUrl = useWelcomeTrack || interactionAudioUrl;
+    if (!sourceUrl) return;
+    audio.currentTime = 0;
+    audio.play().catch(error => {
+      if (error.name === "NotAllowedError") return;
+      audioStatus.textContent = "The interaction sound could not play.";
       console.warn("Portfolio interaction audio could not play.", error);
     });
   });

@@ -139,7 +139,11 @@
     heroImage: "",
     profilePhotos: [],
     contact: {email: "", message: "", whatsapp: ""},
-    audio: {backgroundTrack: {url: "", path: ""}, interactionTrack: {url: "", path: ""}},
+    audio: {
+      backgroundTrack: {url: "", path: ""},
+      interactionTrack: {url: "", path: ""},
+      welcomeTrack: {url: "", path: ""}
+    },
     web: makeDefaultWeb(),
     links: [],
     projects: []
@@ -151,6 +155,101 @@
   let hasSavedWebRecord = false;
   let webDraftConnections = [];
   let themePresetDrafts = [];
+  const adminAudioToggle = $("#admin-audio-toggle");
+  const adminAudioStatus = $("#admin-audio-status");
+  const adminBackgroundAudio = new Audio();
+  const adminInteractionAudio = new Audio();
+  adminBackgroundAudio.loop = true;
+  adminBackgroundAudio.volume = 0.28;
+  adminBackgroundAudio.preload = "none";
+  adminInteractionAudio.volume = 0.2;
+  adminInteractionAudio.preload = "none";
+  const audioPreferenceKey = "portfolio-sound-enabled";
+  let adminAudioEnabled = localStorage.getItem(audioPreferenceKey) !== "false";
+  let adminBackgroundAudioUrl = "";
+  let adminInteractionAudioUrl = "";
+
+  function setAdminAudioSource(audio, url) {
+    if ((audio.getAttribute("src") || "") === url) return false;
+    audio.pause();
+    audio.removeAttribute("src");
+    if (url) audio.setAttribute("src", url);
+    audio.load();
+    return true;
+  }
+  function updateAdminAudioToggle() {
+    const available = !!(adminBackgroundAudioUrl || adminInteractionAudioUrl);
+    adminAudioToggle.disabled = !available;
+    adminAudioToggle.classList.toggle("is-muted", !adminAudioEnabled);
+    adminAudioToggle.setAttribute("aria-pressed", String(adminAudioEnabled));
+    const label = available ? adminAudioEnabled ? "Mute sound" : "Enable sound" : "No audio configured";
+    adminAudioToggle.setAttribute("aria-label", label);
+    adminAudioToggle.title = label;
+    $("span", adminAudioToggle).textContent = adminAudioEnabled ? "Sound on" : "Sound off";
+  }
+  function startAdminBackgroundAudio() {
+    if (!adminAudioEnabled || !adminBackgroundAudioUrl || !adminBackgroundAudio.paused) return;
+    adminBackgroundAudio.play().then(() => {
+      adminAudioStatus.textContent = "";
+    }).catch(error => {
+      if (error.name === "NotAllowedError") {
+        adminAudioStatus.textContent = "Sound is on. Playback will start after your first interaction.";
+        return;
+      }
+      adminAudioStatus.textContent = "Background music could not play. Check the uploaded audio file.";
+      console.warn("Admin background audio could not start.", error);
+    });
+  }
+  function setAdminAudioEnabled(enabled) {
+    adminAudioEnabled = enabled;
+    localStorage.setItem(audioPreferenceKey, String(enabled));
+    if (!enabled) {
+      adminBackgroundAudio.pause();
+      adminInteractionAudio.pause();
+      adminInteractionAudio.currentTime = 0;
+      updateAdminAudioToggle();
+      return;
+    }
+    adminAudioStatus.textContent = "";
+    updateAdminAudioToggle();
+    startAdminBackgroundAudio();
+  }
+  function configureAdminAudio() {
+    const backgroundUrl = normalizeTrack(content.audio?.backgroundTrack).url;
+    const interactionUrl = normalizeTrack(content.audio?.interactionTrack).url;
+    const nextBackgroundUrl = isWebUrl(backgroundUrl) ? backgroundUrl : "";
+    const nextInteractionUrl = isWebUrl(interactionUrl) ? interactionUrl : "";
+    const backgroundChanged = setAdminAudioSource(adminBackgroundAudio, nextBackgroundUrl);
+    setAdminAudioSource(adminInteractionAudio, nextInteractionUrl);
+    adminBackgroundAudioUrl = nextBackgroundUrl;
+    adminInteractionAudioUrl = nextInteractionUrl;
+    updateAdminAudioToggle();
+    if (backgroundChanged && adminAudioEnabled) startAdminBackgroundAudio();
+  }
+  adminAudioToggle.addEventListener("click", () => setAdminAudioEnabled(!adminAudioEnabled));
+  document.addEventListener("pointerdown", event => {
+    if (event.target instanceof Element && event.target.closest("#admin-audio-toggle")) return;
+    startAdminBackgroundAudio();
+  }, true);
+  document.addEventListener("keydown", event => {
+    if ((event.key === "Enter" || event.key === " ") && event.target !== adminAudioToggle) {
+      startAdminBackgroundAudio();
+    }
+  }, true);
+  document.addEventListener("click", event => {
+    const target = event.target instanceof Element
+      ? event.target.closest("button, a[href], input[type='button'], input[type='submit'], input[type='reset'], input[type='checkbox'], input[type='radio'], select, [role='button'], summary")
+      : null;
+    if (!target || target === adminAudioToggle || target.matches(":disabled") ||
+        target.getAttribute("aria-disabled") === "true" || !adminAudioEnabled || !adminInteractionAudioUrl) return;
+    adminInteractionAudio.currentTime = 0;
+    adminInteractionAudio.play().catch(error => {
+      if (error.name === "NotAllowedError") return;
+      adminAudioStatus.textContent = "The interaction sound could not play.";
+      console.warn("Admin interaction audio could not play.", error);
+    });
+  });
+  updateAdminAudioToggle();
 
   const esc = value => String(value ?? "").replace(/[&<>"']/g, character =>
     ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[character]));
@@ -235,7 +334,8 @@
           web: normalizeWeb(saved.web),
           audio: {
             backgroundTrack: normalizeTrack(saved.audio?.backgroundTrack),
-            interactionTrack: normalizeTrack(saved.audio?.interactionTrack)
+            interactionTrack: normalizeTrack(saved.audio?.interactionTrack),
+            welcomeTrack: normalizeTrack(saved.audio?.welcomeTrack)
           }
       };
       webDraftConnections = structuredClone(content.web.connections);
@@ -318,6 +418,7 @@
     const activePaths = new Set([
       normalizeTrack(content.audio?.backgroundTrack).path,
       normalizeTrack(content.audio?.interactionTrack).path,
+      normalizeTrack(content.audio?.welcomeTrack).path,
       ...(content.web?.domains || []).map(domain => normalizeTrack(domain.backgroundTrack).path)
     ].filter(Boolean));
     await deleteUploadedFiles([...new Set(paths)].filter(path => path && !activePaths.has(path)));
@@ -1224,23 +1325,34 @@
       input: "#background-audio-file",
       status: "#background-audio-current",
       remove: "#remove-background-audio",
-      folder: "audio/background"
+      folder: "audio/background",
+      configuredText: "A looping background track is configured.",
+      emptyText: "No track uploaded."
     },
     interactionTrack: {
       input: "#interaction-audio-file",
       status: "#interaction-audio-current",
       remove: "#remove-interaction-audio",
-      folder: "audio/interaction"
+      folder: "audio/interaction",
+      configuredText: "A general interaction sound is configured.",
+      emptyText: "No sound uploaded."
+    },
+    welcomeTrack: {
+      input: "#welcome-audio-file",
+      status: "#welcome-audio-current",
+      remove: "#remove-welcome-audio",
+      folder: "audio/welcome-interaction",
+      configuredText: "A dedicated welcome “Shoot” sound is configured.",
+      emptyText: "No sound uploaded."
     }
   };
   function renderAudioSettings() {
     for (const [key, controls] of Object.entries(AUDIO_CONTROLS)) {
       const track = normalizeTrack(content.audio?.[key]);
-      $(controls.status).textContent = track.url
-        ? key === "backgroundTrack" ? "A looping background track is configured." : "A button sound is configured."
-        : key === "backgroundTrack" ? "No track uploaded." : "No sound uploaded.";
+      $(controls.status).textContent = track.url ? controls.configuredText : controls.emptyText;
       $(controls.remove).disabled = !track.url;
     }
+    configureAdminAudio();
   }
   async function saveAudioSetting(key) {
     const controls = AUDIO_CONTROLS[key];
@@ -1315,8 +1427,10 @@
   }
   $("#upload-background-audio").addEventListener("click", () => void saveAudioSetting("backgroundTrack"));
   $("#upload-interaction-audio").addEventListener("click", () => void saveAudioSetting("interactionTrack"));
+  $("#upload-welcome-audio").addEventListener("click", () => void saveAudioSetting("welcomeTrack"));
   $("#remove-background-audio").addEventListener("click", () => void removeAudioSetting("backgroundTrack"));
   $("#remove-interaction-audio").addEventListener("click", () => void removeAudioSetting("interactionTrack"));
+  $("#remove-welcome-audio").addEventListener("click", () => void removeAudioSetting("welcomeTrack"));
 
   function renderContact() {
     $("#contact-address").value = content.contact.email;

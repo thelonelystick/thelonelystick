@@ -31,8 +31,11 @@ the authorized portfolio owner can read or manage submitted messages. Set the
 authorized owner's Supabase app_metadata role to portfolio_admin as described
 in the admin-role migration. Image uploads are limited to 8 MB per JPEG, PNG,
 WebP, or GIF. Audio uploads are limited to 20 MB per supported audio file. The
-speaker button lets visitors opt in to looping background music and button
-sounds; domain-specific background tracks override the site-wide track.
+speaker button enables looping background music by default; visitors can mute
+it, and browsers may defer playback until the first interaction. Domain-specific
+background tracks override the site-wide track. Uploaded interaction sounds
+play on actionable controls, with a separate optional sound for the welcome
+"Shoot" button.
 
 The public contact form and admin inbox both use the configured Supabase
 project. Admin content updates, domain assignments, and inbox reads require
