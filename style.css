@@ -288,7 +288,7 @@ html[data-theme="light"] .web-puppeteer{opacity:.78;filter:drop-shadow(0 12px 18
 .web-enter:focus-visible{outline:2px solid currentColor;outline-offset:4px}
 .web-entrance[hidden],.organic-web-canvas[hidden],.domain-accessible-nav[hidden]{display:none}
 html[data-theme="light"] .web-entrance{border-color:#9a78c955;background:linear-gradient(90deg,#f2edfa50,#f2edfa14 50%,#f2edfa50),url("/assets/web-welcome-light.png") center 48%/cover no-repeat;color:#392354}
-html[data-theme="light"] .web-entrance-title{background-image:url("/assets/web-welcome-text.png");-webkit-text-stroke:.5px #f4efffbd}
+html[data-theme="light"] .web-entrance-title{background-image:url("/assets/web-welcome-text.png");-webkit-text-stroke:0 transparent}
 html[data-theme="light"] .web-enter{border-color:#eee3ff;background:#211a31d9;color:#f7f1ff}
 html[data-theme="light"] .web-enter:hover{background:#e2d1f6;color:#34234c}
 .organic-domain-card{left:0;top:0;transform:translateX(-50%);transform-origin:50% 0}
