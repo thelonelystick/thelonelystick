@@ -4,6 +4,19 @@
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const BUCKET = "portfolio-media";
   const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+  const MAX_AUDIO_BYTES = 20 * 1024 * 1024;
+  const AUDIO_TYPES = new Map([
+    ["audio/mpeg", "mp3"], ["audio/mp3", "mp3"], ["audio/wav", "wav"], ["audio/x-wav", "wav"],
+    ["audio/ogg", "ogg"], ["audio/webm", "webm"], ["audio/mp4", "m4a"],
+    ["audio/x-m4a", "m4a"], ["audio/aac", "aac"]
+  ]);
+  const normalizeTrack = track => {
+    if (typeof track === "string") return {url: track, path: ""};
+    return {
+      url: typeof track?.url === "string" ? track.url : "",
+      path: typeof track?.path === "string" ? track.path : ""
+    };
+  };
   const slugify = value => String(value || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   const DOMAIN_SEEDS = [
     ["tech", "Tech", "Software, development, digital products, and technical experiments.", "code", 20, 22, 65],
@@ -28,6 +41,7 @@
       domains: DOMAIN_SEEDS.map(([id, title, description, icon, x, y, threadLength], index) => ({
         id, slug: id, title, description, icon, published, hidden: false, displayOrder: index + 1,
         themePresetId: "solar", position: {x, y}, threadLength, pagePath: `/domains/${id}`,
+        backgroundTrack: {url: "", path: ""},
         pageContent: "", sections: [], url: "", featuredProjectIds: [], socialLinkIds: [], articles: [], media: [], createdAt: now, updatedAt: now
       })),
       connections: [],
@@ -67,6 +81,7 @@
         threadLength: domain.threadLength !== null && domain.threadLength !== "" && Number.isFinite(Number(domain.threadLength)) ? Number(domain.threadLength) : 65,
         pagePath: typeof domain.pagePath === "string" ? domain.pagePath : `/domains/${slug}`,
         pageContent: typeof domain.pageContent === "string" ? domain.pageContent : "",
+        backgroundTrack: normalizeTrack(domain.backgroundTrack),
         sections: Array.isArray(domain.sections) ? domain.sections.filter(section => section && typeof section === "object").map((section, sectionIndex) => ({
           ...section,
           id: typeof section.id === "string" && section.id.trim() ? section.id : `section-${sectionIndex + 1}`,
@@ -124,6 +139,7 @@
     heroImage: "",
     profilePhotos: [],
     contact: {email: "", message: "", whatsapp: ""},
+    audio: {backgroundTrack: {url: "", path: ""}, interactionTrack: {url: "", path: ""}},
     web: makeDefaultWeb(),
     links: [],
     projects: []
@@ -162,7 +178,7 @@
     homepage: ["Homepage content", "Shape your introduction."],
     projects: ["Projects & domains", "Keep your work up to date."],
     "web-domains": ["Web Domains", "Shape your organic web."],
-    media: ["Media library", "Manage your profile photos."],
+    media: ["Media library", "Manage images and sound."],
     contact: ["Contact details", "Make it easy to reach you."],
     appearance: ["Appearance", "Set the mood."],
     links: ["Social links", "Connect your worlds."],
@@ -216,7 +232,11 @@
         projects: (Array.isArray(saved.projects) ? saved.projects : []).map((project, index) => ({
           ...project, id: project.id || `project-${slugify(project.title) || index + 1}`
         })),
-        web: normalizeWeb(saved.web)
+          web: normalizeWeb(saved.web),
+          audio: {
+            backgroundTrack: normalizeTrack(saved.audio?.backgroundTrack),
+            interactionTrack: normalizeTrack(saved.audio?.interactionTrack)
+          }
       };
       webDraftConnections = structuredClone(content.web.connections);
       themePresetDrafts = structuredClone(content.web.themePresets);
@@ -227,6 +247,7 @@
       renderContact();
       renderLinks();
       renderProfilePhotos();
+      renderAudioSettings();
       renderDomains();
       if (!hasSavedWebRecord) {
         setStatus("#domain-publish-status", "No published web configuration exists; the initial eight domains are staged as a draft. Publish domains to make them live.");
@@ -271,11 +292,35 @@
     const {data} = authClient.storage.from(BUCKET).getPublicUrl(path);
     return {path, url: data.publicUrl};
   }
-  async function deleteUploadedImages(paths) {
+  async function uploadAudio(file, folder) {
+    const extension = AUDIO_TYPES.get(file?.type);
+    if (!file || !extension) {
+      throw new Error("Choose an MP3, OGG, WAV, M4A, AAC, or WebM audio file.");
+    }
+    if (file.size > MAX_AUDIO_BYTES) throw new Error("Audio files must be 20 MB or smaller.");
+    const path = `${folder}/${crypto.randomUUID()}.${extension}`;
+    const {error} = await authClient.storage.from(BUCKET).upload(path, file, {
+      contentType: file.type,
+      cacheControl: "31536000",
+      upsert: false
+    });
+    if (error) throw new Error(`Could not upload audio: ${error.message}`);
+    const {data} = authClient.storage.from(BUCKET).getPublicUrl(path);
+    return {path, url: data.publicUrl};
+  }
+  async function deleteUploadedFiles(paths) {
     const uniquePaths = [...new Set(paths.filter(Boolean))];
     if (!uniquePaths.length) return;
     const {error} = await authClient.storage.from(BUCKET).remove(uniquePaths);
     if (error) throw new Error(`Published, but could not remove old media: ${error.message}`);
+  }
+  async function deleteObsoleteUploadedFiles(paths) {
+    const activePaths = new Set([
+      normalizeTrack(content.audio?.backgroundTrack).path,
+      normalizeTrack(content.audio?.interactionTrack).path,
+      ...(content.web?.domains || []).map(domain => normalizeTrack(domain.backgroundTrack).path)
+    ].filter(Boolean));
+    await deleteUploadedFiles([...new Set(paths)].filter(path => path && !activePaths.has(path)));
   }
 
   function renderHome() {
@@ -393,7 +438,7 @@
       const obsoletePaths = previousPaths.filter(path => !currentPaths.has(path));
       if (obsoletePaths.length) {
         try {
-          await deleteUploadedImages(obsoletePaths);
+          await deleteUploadedFiles(obsoletePaths);
         } catch (error) {
           setStatus("#projects-status", `Project changes published, but screenshot cleanup failed: ${error.message}`, true);
           return;
@@ -548,6 +593,11 @@
           <label>Featured projects<select data-domain-projects multiple size="4">${projectOptions}</select></label>
           <label>Social links<select data-domain-social multiple size="4">${socialOptions}</select></label>
         </div>
+        <div class="domain-audio-editor">
+          <label for="domain-audio-${index}">Domain background music (optional, loops)<input id="domain-audio-${index}" data-domain-audio-file type="file" accept=".mp3,.ogg,.wav,.m4a,.aac,.webm,audio/mpeg,audio/ogg,audio/wav,audio/mp4,audio/aac,audio/webm"></label>
+          <p class="field-hint" data-domain-audio-status>${domain.backgroundTrack?.url ? "A domain-specific track is set and overrides default music." : "No override; the default background music will play here."}</p>
+          <label class="visibility-control"><input data-domain-audio-remove type="checkbox"> Remove this domain track and use default music</label>
+        </div>
         <div class="domain-sections-editor">
           <div class="domain-sections-heading"><div><h3>Custom page sections</h3><p>Add or remove text sections on this domain's public page.</p></div><button type="button" class="button secondary" data-domain-add-section>+ Add section</button></div>
           <div class="domain-custom-section-list">${sections}</div>
@@ -623,7 +673,7 @@
           <label>Card appearance<select data-preset-field="cardAppearance">${["solid","glass","outline"].map(value => `<option ${preset.cardAppearance === value ? "selected" : ""}>${value}</option>`).join("")}</select></label>
           <label>Transition style<select data-preset-field="transitionStyle">${["silk","fade","none"].map(value => `<option ${preset.transitionStyle === value ? "selected" : ""}>${value}</option>`).join("")}</select></label>
           <label>Hover behavior<select data-preset-field="hoverBehavior">${["lift","glow","none"].map(value => `<option ${preset.hoverBehavior === value ? "selected" : ""}>${value}</option>`).join("")}</select></label>
-          <label class="domain-field-wide">Optional approved audio URL<input data-preset-field="audioTrack" type="url" value="${esc(preset.audioTrack || "")}" placeholder="https://example.com/approved-track.mp3"></label>
+          <label class="domain-field-wide">Fallback background music URL<input data-preset-field="audioTrack" type="url" value="${esc(preset.audioTrack || "")}" placeholder="https://example.com/ambient-track.mp3"></label>
         </div>
       </article>`
     ).join("");
@@ -813,6 +863,7 @@
       }
       if (domain.pagePath !== `/domains/${domain.slug}`) throw new Error(`Page path for ${domain.title} must be /domains/${domain.slug}.`);
       if (domain.url && !isWebUrl(domain.url)) throw new Error(`External URL for ${domain.title} must use http(s).`);
+      if (domain.backgroundTrack?.url && !isWebUrl(domain.backgroundTrack.url)) throw new Error(`Background music for ${domain.title} must use a valid http(s) URL.`);
       const sectionIds = new Set();
       for (const section of Array.isArray(domain.sections) ? domain.sections : []) {
         if (!section.title) throw new Error(`Give each custom section in ${domain.title} a title, or remove the empty section.`);
@@ -838,17 +889,43 @@
   }
   async function publishDomainDrafts(domains, message = "Domain configuration published.") {
     const previous = content.web;
+    const uploadedPaths = [];
+    const obsoletePaths = [];
+    let contentPublished = false;
     try {
       validateDomainDrafts(domains, webDraftConnections, themePresetDrafts);
       if (!$("#web-section-title").value.trim()) throw new Error("The organic web needs a section title.");
       const now = new Date().toISOString();
-      const savedDomains = [...domains].sort((a, b) => a.displayOrder - b.displayOrder).map((domain, index) => ({
-        ...domain,
-        displayOrder: index + 1,
-        pagePath: `/domains/${domain.slug}`,
-        createdAt: domain.createdAt || now,
-        updatedAt: now
-      }));
+      const sortedDomains = [...domains].sort((a, b) => a.displayOrder - b.displayOrder);
+      const savedIds = new Set(sortedDomains.map(domain => domain.id));
+      for (const oldDomain of previous.domains || []) {
+        const oldTrack = normalizeTrack(oldDomain.backgroundTrack);
+        if (!savedIds.has(oldDomain.id) && oldTrack.path) obsoletePaths.push(oldTrack.path);
+      }
+      const savedDomains = [];
+      for (const [index, domain] of sortedDomains.entries()) {
+        const row = $$(".domain-edit").find(item => item.dataset.domainId === domain.id);
+        const file = row && $("[data-domain-audio-file]", row).files[0];
+        const removeTrack = row && $("[data-domain-audio-remove]", row).checked;
+        let backgroundTrack = normalizeTrack(domain.backgroundTrack);
+        if (file) {
+          const uploaded = await uploadAudio(file, `domain-audio/${domain.slug}`);
+          uploadedPaths.push(uploaded.path);
+          if (backgroundTrack.path) obsoletePaths.push(backgroundTrack.path);
+          backgroundTrack = uploaded;
+        } else if (removeTrack) {
+          if (backgroundTrack.path) obsoletePaths.push(backgroundTrack.path);
+          backgroundTrack = {url: "", path: ""};
+        }
+        savedDomains.push({
+          ...domain,
+          backgroundTrack,
+          displayOrder: index + 1,
+          pagePath: `/domains/${domain.slug}`,
+          createdAt: domain.createdAt || now,
+          updatedAt: now
+        });
+      }
       const connections = webDraftConnections.map(connection => ({...connection}));
       content.web = {
         ...previous,
@@ -860,15 +937,32 @@
         themePresets: structuredClone(themePresetDrafts)
       };
       await publishContent(true);
+      contentPublished = true;
+      let cleanupError = "";
+      try {
+        await deleteObsoleteUploadedFiles(obsoletePaths);
+      } catch (error) {
+        cleanupError = error.message;
+      }
       webDraftConnections = structuredClone(connections);
       renderDomains();
       refreshPlacementChoices();
-      setStatus("#domain-publish-status", message);
+      setStatus("#domain-publish-status", cleanupError ? `${message} Old audio cleanup failed: ${cleanupError}` : message, !!cleanupError);
       toast("Web domains published");
     } catch (error) {
+      if (contentPublished) {
+        setStatus("#domain-publish-status", `Domain changes were published, but the editor could not refresh: ${error.message}`, true);
+        return;
+      }
       content.web = previous;
+      let cleanupError = "";
+      try {
+        await deleteUploadedFiles(uploadedPaths);
+      } catch (cleanupFailure) {
+        cleanupError = ` New audio files also need cleanup: ${cleanupFailure.message}`;
+      }
       renderDomains(domains);
-      setStatus("#domain-publish-status", error.message, true);
+      setStatus("#domain-publish-status", `${error.message}${cleanupError}`, true);
     }
   }
   $("#domain-settings-form").addEventListener("submit", event => {
@@ -905,7 +999,8 @@
       id: `domain-${crypto.randomUUID()}`, slug, title, description: $("#new-domain-description").value.trim(),
       icon: $("#new-domain-icon").value.trim() || "code", published: true, hidden: false,
       displayOrder: domains.length + 1, themePresetId: themePresetDrafts[0]?.id || "solar",
-      position: {x: 50, y: 50}, threadLength: 65, pagePath: `/domains/${slug}`, pageContent: "", sections: [], url: "",
+      position: {x: 50, y: 50}, threadLength: 65, pagePath: `/domains/${slug}`, pageContent: "",
+      backgroundTrack: {url: "", path: ""}, sections: [], url: "",
       featuredProjectIds: [], socialLinkIds: [], articles: [], media: [], createdAt: now, updatedAt: now
     });
     renderDomains(domains);
@@ -953,6 +1048,7 @@
       domains.splice(index + 1, 0, {
         ...original, id: `domain-${crypto.randomUUID()}`, slug, title: `${original.title.slice(0, 45)} copy`,
         published: false, pagePath: `/domains/${slug}`, position: {...original.position},
+        backgroundTrack: {url: "", path: ""},
         createdAt: now, updatedAt: now, displayOrder: index + 2
       });
       domains.forEach((domain, domainIndex) => { domain.displayOrder = domainIndex + 1; });
@@ -986,7 +1082,19 @@
     }
     updateDomainPreview();
   });
-  $("#domain-editor-list").addEventListener("change", () => updateDomainPreview());
+  $("#domain-editor-list").addEventListener("change", event => {
+    const row = event.target.closest(".domain-edit");
+    if (row && event.target.matches("[data-domain-audio-file]")) {
+      const file = event.target.files[0];
+      if (file) {
+        $("[data-domain-audio-remove]", row).checked = false;
+        $("[data-domain-audio-status]", row).textContent = `${file.name} selected; publish domains to upload and save it.`;
+      }
+    } else if (row && event.target.matches("[data-domain-audio-remove]") && event.target.checked) {
+      $("[data-domain-audio-status]", row).textContent = "The domain track will be removed when you publish.";
+    }
+    updateDomainPreview();
+  });
   $("#restore-domain-defaults").addEventListener("click", () => {
     const currentCount = content.web.domains?.length || 0;
     if (!window.confirm(`Restore the initial eight-domain configuration as a draft? This replaces ${currentCount} current domain records and detaches their strand, featured-project, and social-link references. Shared projects, social links, media, and all unrelated content are preserved. Nothing will publish until you press Publish domains.`)) return;
@@ -1041,7 +1149,7 @@
     } catch (error) {
       let message = error.message;
       if (uploads.length) {
-        try { await deleteUploadedImages(uploads.map(upload => upload.path)); }
+        try { await deleteUploadedFiles(uploads.map(upload => upload.path)); }
         catch (cleanupError) {
           message += ` Uploaded files also need cleanup: ${cleanupError.message}`;
         }
@@ -1086,7 +1194,7 @@
         renderProfilePhotos();
         if (removed.path) {
           try {
-            await deleteUploadedImages([removed.path]);
+            await deleteUploadedFiles([removed.path]);
           } catch (error) {
             setStatus("#media-status", `Photo removed from the portfolio, but storage cleanup failed: ${error.message}`, true);
             return;
@@ -1110,6 +1218,105 @@
       setStatus("#media-status", error.message, true);
     }
   });
+
+  const AUDIO_CONTROLS = {
+    backgroundTrack: {
+      input: "#background-audio-file",
+      status: "#background-audio-current",
+      remove: "#remove-background-audio",
+      folder: "audio/background"
+    },
+    interactionTrack: {
+      input: "#interaction-audio-file",
+      status: "#interaction-audio-current",
+      remove: "#remove-interaction-audio",
+      folder: "audio/interaction"
+    }
+  };
+  function renderAudioSettings() {
+    for (const [key, controls] of Object.entries(AUDIO_CONTROLS)) {
+      const track = normalizeTrack(content.audio?.[key]);
+      $(controls.status).textContent = track.url
+        ? key === "backgroundTrack" ? "A looping background track is configured." : "A button sound is configured."
+        : key === "backgroundTrack" ? "No track uploaded." : "No sound uploaded.";
+      $(controls.remove).disabled = !track.url;
+    }
+  }
+  async function saveAudioSetting(key) {
+    const controls = AUDIO_CONTROLS[key];
+    const input = $(controls.input);
+    const file = input.files[0];
+    if (!file) {
+      setStatus("#audio-settings-status", "Choose an audio file first.", true);
+      return;
+    }
+    const previousAudio = content.audio;
+    let uploaded;
+    try {
+      uploaded = await uploadAudio(file, controls.folder);
+      content.audio = {...previousAudio, [key]: uploaded};
+      try {
+        await publishContent();
+      } catch (error) {
+        content.audio = previousAudio;
+        throw error;
+      }
+      let cleanupError = "";
+      const oldTrack = normalizeTrack(previousAudio[key]);
+      if (oldTrack.path) {
+        try {
+          await deleteObsoleteUploadedFiles([oldTrack.path]);
+        } catch (error) {
+          cleanupError = ` Old file cleanup failed: ${error.message}`;
+        }
+      }
+      renderAudioSettings();
+      setStatus("#audio-settings-status", `Audio setting published.${cleanupError}`, !!cleanupError);
+      toast("Audio setting published");
+    } catch (error) {
+      let cleanupError = "";
+      if (uploaded) {
+        try {
+          await deleteUploadedFiles([uploaded.path]);
+        } catch (cleanupFailure) {
+          cleanupError = ` Uploaded file also needs cleanup: ${cleanupFailure.message}`;
+        }
+      }
+      content.audio = previousAudio;
+      renderAudioSettings();
+      setStatus("#audio-settings-status", `${error.message}${cleanupError}`, true);
+    } finally {
+      input.value = "";
+    }
+  }
+  async function removeAudioSetting(key) {
+    const previousAudio = content.audio;
+    const previousTrack = normalizeTrack(previousAudio[key]);
+    if (!previousTrack.url) return;
+    content.audio = {...previousAudio, [key]: {url: "", path: ""}};
+    try {
+      await publishContent();
+      if (previousTrack.path) {
+        try {
+          await deleteObsoleteUploadedFiles([previousTrack.path]);
+        } catch (error) {
+          renderAudioSettings();
+          setStatus("#audio-settings-status", `Audio setting removed, but storage cleanup failed: ${error.message}`, true);
+          return;
+        }
+      }
+      renderAudioSettings();
+      setStatus("#audio-settings-status", "Audio setting removed.");
+    } catch (error) {
+      content.audio = previousAudio;
+      renderAudioSettings();
+      setStatus("#audio-settings-status", error.message, true);
+    }
+  }
+  $("#upload-background-audio").addEventListener("click", () => void saveAudioSetting("backgroundTrack"));
+  $("#upload-interaction-audio").addEventListener("click", () => void saveAudioSetting("interactionTrack"));
+  $("#remove-background-audio").addEventListener("click", () => void removeAudioSetting("backgroundTrack"));
+  $("#remove-interaction-audio").addEventListener("click", () => void removeAudioSetting("interactionTrack"));
 
   function renderContact() {
     $("#contact-address").value = content.contact.email;

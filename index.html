@@ -106,6 +106,10 @@
       <a href="#about">About</a><a href="#projects">Projects</a><a class="nav-contact" href="#contact">Contact <span>↗</span></a>
     </nav>
     <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to light theme" title="Switch theme"><span aria-hidden="true">☼</span><span class="theme-toggle-label">Solar</span></button>
+    <button class="audio-toggle" id="audio-toggle" type="button" aria-label="No audio configured" title="No audio configured" aria-pressed="false" disabled>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6l-5 4H4z"/><path class="audio-wave" d="M16 9a5 5 0 0 1 0 6m2-9a9 9 0 0 1 0 12"/><path class="audio-muted-mark" d="m17 9 5 6m0-6-5 6"/></svg>
+    </button>
+    <span id="audio-status" class="visually-hidden" role="status" aria-live="polite"></span>
   </header>
 
   <main>
@@ -129,6 +133,7 @@
     <section class="organic-web wrap section" id="web" hidden>
       <div class="web-entrance" id="web-entrance">
         <h2 class="web-entrance-title">Welcome to my web</h2>
+        <p class="web-entrance-subtitle" id="web-subtitle" hidden></p>
         <button class="web-enter" id="web-enter" type="button" aria-controls="organic-web-canvas">Shoot
           <svg class="web-enter-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
             <path d="M16 2v28M2 16h28M6.1 6.1l19.8 19.8M25.9 6.1 6.1 25.9M16 2c-4 4-6 8.6-6 14s2 10 6 14c4-4 6-8.6 6-14S20 6 16 2ZM2 16c4-4 8.6-6 14-6s10 2 14 6c-4 4-8.6 6-14 6S6 20 2 16Z"/>
@@ -136,7 +141,6 @@
         </button>
       </div>
       <h2 class="visually-hidden" id="web-title">Welcome to my web</h2>
-      <p class="visually-hidden" id="web-subtitle"></p>
       <div class="organic-web-canvas" id="organic-web-canvas" aria-label="Organic web of published domains" hidden>
         <svg class="organic-web-threads" id="organic-web-threads" aria-hidden="true" focusable="false" preserveAspectRatio="none" viewBox="0 0 1000 700"></svg>
         <div class="organic-web-domains" id="organic-web-domains"></div>

@@ -68,6 +68,7 @@
     const label = $(".theme-toggle-label", themeToggle);
     if (icon) icon.textContent = light ? "☾" : "☼";
     if (label) label.textContent = light ? "Lunar" : "Solar";
+    if (window.__portfolioContent) configureAudio(window.__portfolioContent);
   }
   applyTheme(theme);
   themeToggle?.addEventListener("click", () => {
@@ -84,6 +85,106 @@
       return "";
     }
   };
+  const audioToggle = $("#audio-toggle");
+  const audioStatus = $("#audio-status");
+  const backgroundAudio = new Audio();
+  const interactionAudio = new Audio();
+  backgroundAudio.loop = true;
+  backgroundAudio.volume = 0.28;
+  backgroundAudio.preload = "none";
+  interactionAudio.volume = 0.2;
+  interactionAudio.preload = "none";
+  let audioEnabled = false;
+  let backgroundAudioUrl = "";
+  let interactionAudioUrl = "";
+  const audioPreferenceKey = "portfolio-sound-enabled";
+  function updateAudioToggle() {
+    if (!audioToggle) return;
+    const available = !!(backgroundAudioUrl || interactionAudioUrl);
+    audioToggle.disabled = !available;
+    audioToggle.classList.toggle("is-muted", !audioEnabled);
+    audioToggle.setAttribute("aria-pressed", String(audioEnabled));
+    const label = available ? audioEnabled ? "Mute sound" : "Enable sound" : "No audio configured";
+    audioToggle.setAttribute("aria-label", label);
+    audioToggle.title = label;
+  }
+  function setAudioSource(audio, url) {
+    const currentUrl = audio.getAttribute("src") || "";
+    if (currentUrl === url) return false;
+    audio.pause();
+    audio.removeAttribute("src");
+    if (url) audio.setAttribute("src", url);
+    audio.load();
+    return true;
+  }
+  async function setAudioEnabled(enabled, persist = true) {
+    if (!enabled) {
+      audioEnabled = false;
+      backgroundAudio.pause();
+      interactionAudio.pause();
+      interactionAudio.currentTime = 0;
+      updateAudioToggle();
+      if (persist) localStorage.setItem(audioPreferenceKey, "false");
+      return;
+    }
+    if (!backgroundAudioUrl && !interactionAudioUrl) {
+      audioStatus.textContent = "No background or interaction audio is configured.";
+      updateAudioToggle();
+      return;
+    }
+    try {
+      if (backgroundAudioUrl) await backgroundAudio.play();
+      audioEnabled = true;
+      audioStatus.textContent = "";
+      if (persist) localStorage.setItem(audioPreferenceKey, "true");
+      updateAudioToggle();
+    } catch (error) {
+      audioEnabled = false;
+      backgroundAudio.pause();
+      audioStatus.textContent = "Audio could not start. Check the uploaded audio file and try again.";
+      localStorage.setItem(audioPreferenceKey, "false");
+      updateAudioToggle();
+      console.warn("Portfolio audio could not start.", error);
+    }
+  }
+  function trackUrl(track) {
+    return safeImage(typeof track === "string" ? track : track?.url || "");
+  }
+  function configureAudio(content) {
+    const web = content.web && typeof content.web === "object" ? content.web : {};
+    const domains = Array.isArray(web.domains) ? web.domains : [];
+    const currentDomain = domainRoute ? domains.find(domain =>
+      domain.slug === domainRoute[1].toLowerCase() && domain.published !== false) : null;
+    const presets = Array.isArray(web.themePresets) ? web.themePresets : [];
+    const preferredPresetId = currentDomain?.themePresetId || (theme === "light" ? "lunar" : "solar");
+    const preset = presets.find(item => item.id === preferredPresetId) || presets[0];
+    const nextBackgroundUrl = trackUrl(currentDomain?.backgroundTrack) ||
+      trackUrl(content.audio?.backgroundTrack) || trackUrl(preset?.audioTrack);
+    const nextInteractionUrl = trackUrl(content.audio?.interactionTrack);
+    const backgroundChanged = setAudioSource(backgroundAudio, nextBackgroundUrl);
+    setAudioSource(interactionAudio, nextInteractionUrl);
+    backgroundAudioUrl = nextBackgroundUrl;
+    interactionAudioUrl = nextInteractionUrl;
+    updateAudioToggle();
+    if (backgroundChanged && audioEnabled && backgroundAudioUrl) {
+      void setAudioEnabled(true, false);
+    } else if (localStorage.getItem(audioPreferenceKey) === "true" && !audioEnabled) {
+      void setAudioEnabled(true, false);
+    }
+  }
+  audioToggle?.addEventListener("click", () => {
+    void setAudioEnabled(!audioEnabled);
+  });
+  document.addEventListener("click", event => {
+    const button = event.target.closest("button, [role='button']");
+    if (!button || button === audioToggle || button.disabled || !audioEnabled || !interactionAudioUrl) return;
+    interactionAudio.currentTime = 0;
+    interactionAudio.play().catch(error => {
+      audioStatus.textContent = "The button interaction sound could not play.";
+      console.warn("Portfolio interaction audio could not play.", error);
+    });
+  });
+  updateAudioToggle();
   function renderProfilePhotos() {
     const displayStack = $("#home-display-stack");
     const heroVisual = $(".hero-visual");
@@ -242,7 +343,9 @@
     const domains = Array.isArray(web?.domains) ? web.domains : [];
     section.hidden = !welcomeRoute && (web?.enabled === false || !domains.some(domain => WebRenderer.publishedAndVisible(domain)));
     $("#web-title").textContent = web?.sectionTitle || "Welcome to my web";
-    $("#web-subtitle").textContent = web?.sectionSubtitle || "";
+    const subtitle = $("#web-subtitle");
+    subtitle.textContent = web?.sectionSubtitle || "";
+    subtitle.hidden = !subtitle.textContent.trim();
     const canvas = $("#organic-web-canvas");
     const cards = $("#organic-web-domains");
     const list = $("#domain-accessible-list");
@@ -322,6 +425,7 @@
 
     renderProjects(Array.isArray(content.projects) ? content.projects : []);
     renderOrganicWeb(content.web || {}, Array.isArray(content.projects) ? content.projects : [], Array.isArray(content.links) ? content.links : []);
+    configureAudio(content);
     const contact = content.contact && typeof content.contact === "object" ? content.contact : {};
     const email = String(contact.email || "").trim();
     const emailPath = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "";

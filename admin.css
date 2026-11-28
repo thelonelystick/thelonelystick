@@ -161,3 +161,10 @@ html[data-admin-theme="dark"] .link-row .link-remove{border-color:#85453d;backgr
 html[data-admin-theme="dark"] .button.danger{border-color:#85453d;background:#291815;color:#eab2a7}
 @media(max-width:900px){.link-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 42px;grid-template-areas:"label label remove" "url url url" "type placement placement"}.link-row input[data-label]{grid-area:label}.link-row input[data-url]{grid-area:url}.link-row select[data-type]{grid-area:type}.link-row [data-placement-trigger]{grid-area:placement}.link-row [data-remove]{grid-area:remove}}
 @media(max-width:600px){.placement-dialog-body{padding:18px}.placement-options{grid-template-columns:1fr}.placement-dialog-actions{flex-direction:column-reverse}.placement-dialog-actions .button{width:100%}}
+.audio-settings>h3{font:600 19px var(--display);margin:7px 0}
+.audio-setting{display:grid;grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) auto;align-items:center;gap:14px;padding:16px 0;border-top:1px solid var(--line)}
+.audio-setting>div:last-child{display:flex;flex-wrap:wrap;gap:8px}
+.audio-setting .field-hint{margin:4px 0 0}
+.domain-audio-editor{display:grid;gap:9px;margin:16px 0;padding:16px;border:1px solid var(--line);border-radius:8px}
+.domain-audio-editor>label:first-child{display:grid;gap:8px}
+@media(max-width:760px){.audio-setting{grid-template-columns:1fr}.audio-setting>div:last-child{align-items:stretch;flex-direction:column}.audio-setting .button{width:100%}}

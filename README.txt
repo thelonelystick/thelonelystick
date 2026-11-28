@@ -14,11 +14,13 @@ In the Supabase SQL Editor, run these migrations in order:
 4. supabase/migrations/20261108040900_organic_web_domains.sql
 5. supabase/migrations/20261122000000_admin_role.sql
 6. supabase/migrations/20261128000000_contact_inbox.sql
+7. supabase/migrations/20261128010000_audio_uploads.sql
 
 For a fresh database, run the migrations in order. For an existing deployment
-that already has the first five migrations, apply only the new contact-inbox
-migration. Do not rerun the admin-role migration on a live site: it resets the
-published contact email while updating owner policies.
+that already has the first five migrations, apply the contact-inbox and audio
+migrations in order. If the contact-inbox migration is already applied, apply
+only the audio migration. Do not rerun the admin-role migration on a live site:
+it resets the published contact email while updating owner policies.
 
 The organic-web migration adds the initial eight domains only when a web
 configuration does not already exist, preserving other published content.
@@ -28,7 +30,9 @@ The contact inbox migration creates the public message-submission table; only
 the authorized portfolio owner can read or manage submitted messages. Set the
 authorized owner's Supabase app_metadata role to portfolio_admin as described
 in the admin-role migration. Image uploads are limited to 8 MB per JPEG, PNG,
-WebP, or GIF.
+WebP, or GIF. Audio uploads are limited to 20 MB per supported audio file. The
+speaker button lets visitors opt in to looping background music and button
+sounds; domain-specific background tracks override the site-wide track.
 
 The public contact form and admin inbox both use the configured Supabase
 project. Admin content updates, domain assignments, and inbox reads require
